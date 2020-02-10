@@ -1,4 +1,4 @@
-MPL=../build/bin/mpl
+MPL=../result/bin/mpl
 FLAGS=-default-type int64 -default-type word64
 
 PROGRAMS= \
@@ -10,7 +10,9 @@ PROGRAMS= \
 	ray \
 	tokens \
 	nn \
-	dedup
+	dedup \
+        buildtree \
+        sbuildtree
 
 all: $(PROGRAMS)
 
