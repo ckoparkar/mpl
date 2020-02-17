@@ -11,8 +11,9 @@ PROGRAMS= \
 	tokens \
 	nn \
 	dedup \
-        buildtree \
-        sbuildtree
+	buildtree \
+	sbuildtree \
+	qsort
 
 all: $(PROGRAMS)
 
