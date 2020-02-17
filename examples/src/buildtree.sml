@@ -37,15 +37,19 @@ fun buildtree n =
     in Node (n, x, y)
     end 
 
+fun bench msg f n =
+  let
+    val _ = print (msg ^ Int.toString n ^ "\n")
+    val t0 = Time.now ()
+    val result = f n
+    val t1 = Time.now ()
+    val sum = sumtree result
+    val _ = print ("finished in " ^ Time.fmt 4 (Time.- (t1, t0)) ^ "s\n")
+    val _ = print ("result " ^ Int.toString sum ^ "\n")
+  in
+    sum
+  end
+
 val n = CommandLineArgs.parseInt "N" 10
-val _ = print ("buildtree " ^ Int.toString n ^ "\n")
-
-val t0 = Time.now ()
-val result = buildtree n
-val t1 = Time.now ()
-
-val sum = sumtree result
-
-val _ = print ("finished in " ^ Time.fmt 4 (Time.- (t1, t0)) ^ "s\n")
-
-val _ = print ("result " ^ Int.toString sum ^ "\n")
+val _ = bench "buildtree " buildtree n
+val _ = bench "sbuildtree " sbuildtree n

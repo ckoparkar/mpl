@@ -1,4 +1,0 @@
-$(SML_LIB)/basis/basis.mlb
-
-lib/CommandLineArgs.sml
-sbuildtree.sml

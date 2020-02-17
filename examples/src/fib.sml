@@ -10,13 +10,18 @@ fun fib n =
       x + y
     end
 
+fun bench msg f n =
+  let
+    val _ = print (msg ^ Int.toString n ^ "\n")
+    val t0 = Time.now ()
+    val result = f n
+    val t1 = Time.now ()
+    val _ = print ("finished in " ^ Time.fmt 4 (Time.- (t1, t0)) ^ "s\n")
+    val _ = print ("result " ^ Int.toString result ^ "\n")
+  in
+    result
+  end
+
 val n = CommandLineArgs.parseInt "N" 39
-val _ = print ("fib " ^ Int.toString n ^ "\n")
-
-val t0 = Time.now ()
-val result = fib n
-val t1 = Time.now ()
-
-val _ = print ("finished in " ^ Time.fmt 4 (Time.- (t1, t0)) ^ "s\n")
-
-val _ = print ("result " ^ Int.toString result ^ "\n")
+val _ = bench "fib " fib n
+val _ = bench "sfib " sfib n
