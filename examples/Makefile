@@ -16,7 +16,15 @@ FLAGS=-default-type int64 -default-type word64
 # 	qsort
 
 PROGRAMS= \
-	parfib
+	parfib \
+	seqfib \
+	parbuildfib \
+	seqbuildfib \
+	parsumtree \
+	seqsumtree \
+	parsumpartree \
+	paradd1tree \
+	seqadd1tree
 
 all: $(PROGRAMS)
 

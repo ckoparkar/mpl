@@ -3,4 +3,5 @@ fun sfib n =
 
 val size = CommandLineArgs.parseInt "N" 39
 val iters = CommandLineArgs.parseInt "I" 9
-val _ = Bench.print_bench "seqfib" iters sfib size
+val n = Bench.print_bench "seqfib" iters sfib size
+val _ = print (Int.toString n ^ "\n")
