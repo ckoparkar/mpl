@@ -3,3 +3,6 @@
 
 # created by a failed build
 /tmp*
+
+# Benchamarks
+examples/src/*.exe
