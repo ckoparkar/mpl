@@ -1,12 +1,9 @@
 datatype tree = Leaf of int
               | Node of int * tree * tree;
 
-fun sfib n =
-  if n <= 1 then n else sfib (n-1) + sfib (n-2)
-
 fun sbuildtree n =
   if n <= 0
-  then Leaf (sfib 20)
+  then Leaf 6765
   else
     let val (x, y) = (sbuildtree (n-1), sbuildtree (n-1))
     in Node (n, x, y)
