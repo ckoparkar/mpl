@@ -12,6 +12,18 @@ fun sbuildtree n =
     in Node (n, x, y)
     end
 
+fun buildtree n =
+  if W.<= (n, W.fromInt 0)
+  then Leaf (W.fromInt 6765)
+  else
+  if W.< (n, W.fromInt 19)
+  then sbuildtree n
+  else
+    let val (x, y) = ForkJoin.par(fn _ => buildtree (W.- (n, W.fromInt 1)),
+                                  fn _ => buildtree (W.- (n, W.fromInt 1)))
+    in Node (n, x, y)
+    end
+
 fun ssumtree tr =
   case tr of
     Leaf (i)       => i
@@ -19,6 +31,6 @@ fun ssumtree tr =
 
 val size = CommandLineArgs.parseInt "N" 25
 val iters = CommandLineArgs.parseInt "I" 9
-val tr = sbuildtree (W.fromInt size)
-val sum = Bench.print_bench "seqsumtree" iters (fn _ => ssumtree tr) (W.fromInt size)
+val tr = buildtree (W.fromInt size)
+val sum = Bench.print_bench "seqsumpartree" iters (fn _ => ssumtree tr) (W.fromInt size)
 val _ = print (Int.toString (W.toInt sum) ^ "\n")

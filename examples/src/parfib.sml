@@ -1,16 +1,22 @@
-fun sfib n =
-    if n <= 1 then n else sfib (n-1) + sfib (n-2)
+structure W = Word
 
+fun sfib n =
+    if W.<= (n, W.fromInt 1)
+    then n
+    else W.+ (sfib (W.- (n, W.fromInt 1)),
+              sfib (W.- (n, W.fromInt 2)))
 fun fib n =
-    if n <= 20 then sfib n
+    if W.<= (n, W.fromInt 19)
+    then sfib n
     else
       let
-        val (x,y) = ForkJoin.par (fn _ => fib (n-1), fn _ => fib (n-2))
+        val (x,y) = ForkJoin.par (fn _ => fib (W.- (n, W.fromInt 1)),
+                                  fn _ => fib (W.- (n, W.fromInt 2)))
       in
-        x + y
+        W.+ (x, y)
       end
 
 val size = CommandLineArgs.parseInt "N" 39
 val iters = CommandLineArgs.parseInt "I" 9
-val n = Bench.print_bench "parfib" iters fib size
-val _ = print (Int.toString n ^ "\n")
+val n = Bench.print_bench "parfib" iters fib (W.fromInt size)
+val _ = print (Int.toString (W.toInt n) ^ "\n")

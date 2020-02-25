@@ -22,9 +22,10 @@ PROGRAMS= \
 	seqbuildfib \
 	parsumtree \
 	seqsumtree \
-	parsumpartree \
 	paradd1tree \
-	seqadd1tree
+	seqadd1tree \
+	parsumpartree \
+	seqsumpartree
 
 all: $(PROGRAMS)
 
