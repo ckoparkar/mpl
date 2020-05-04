@@ -3,4 +3,7 @@ $(SML_LIB)/basis/fork-join.mlb
 
 lib/sources.mlb
 bench.mlb
-paradd1tree.sml
+
+fib.sml
+bintree.sml
+benchrunner.sml

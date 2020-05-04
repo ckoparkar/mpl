@@ -15,17 +15,22 @@ FLAGS=-default-type int64 -default-type word64
 # 	sbuildtree \
 # 	qsort
 
-PROGRAMS= \
-	parfib \
-	seqfib \
-	parbuildfib \
-	seqbuildfib \
-	parsumtree \
-	seqsumtree \
-	paradd1tree \
-	seqadd1tree \
-	parsumpartree \
-	seqsumpartree
+# PROGRAMS= \
+# 	parfib \
+# 	seqfib \
+# 	parbuildfib \
+# 	seqbuildfib \
+# 	parsumtree \
+# 	seqsumtree \
+# 	paradd1tree \
+# 	seqadd1tree \
+# 	parsumpartree \
+# 	seqsumpartree \
+# 	seqbuildtree \
+# 	parbuildtree
+
+PROGRAMS = \
+	benchrunner
 
 all: $(PROGRAMS)
 
