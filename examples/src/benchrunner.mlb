@@ -3,7 +3,10 @@ $(SML_LIB)/basis/fork-join.mlb
 
 lib/sources.mlb
 bench.mlb
+SQuicksort.sml
 
+common.sml
 fib.sml
 bintree.sml
+kdtree.sml
 benchrunner.sml
