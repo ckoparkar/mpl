@@ -84,3 +84,108 @@ fun read3DArrayFile (fp : string) : point3d AS.slice =
   in
     AS.slice (arr, 0, SOME (A.length arr - 1))
   end
+
+
+    (* -------------------------------------------------------------------------- *)
+
+
+type point2d = real * real * real
+
+fun compare_point2d (axis : int) ((x1,y1,z1) : point2d) ((x2,y2,z2) : point2d) : order =
+  if ieq axis 0
+  then compare_real x1 x2
+  else if ieq axis 1
+  then compare_real y2 y2
+  else compare_real z1 z2
+
+fun dist_point2d ((x1,y1,z1) : point2d) ((x2,y2,z2) : point2d) : real =
+  let
+    val (d1, d2, d3) = (R.-(x1,x2), R.-(y1,y2), R.-(z1,z2))
+  in
+    R.+(R.*(d1, d1), R.+( R.*(d2, d2), R.*(d3, d3)))
+  end
+
+fun enclosing_point2d ((x1,y1,z1) : point2d) ((x2,y2,z2) : point2d) : point2d * point2d =
+  let
+    val small = (R.min (x1, x2), R.min (y1, y2), R.min (z1, z2))
+    val big = (R.max (x1, x2), R.max (y1, y2), R.max (z1, z2))
+  in
+    (small, big)
+  end
+
+
+fun point2dToString ((x,y,z) : point2d) : String.string =
+  "(" ^ Real.toString x ^ "," ^ Real.toString y ^ "," ^ Real.toString z ^ ")"
+
+fun print_arr_point2d (arr : point2d AS.slice) : unit =
+  ArraySlice.foldl (fn (p,_) => print (point2dToString p ^ "\n")) () arr
+
+fun read3DArrayFile (fp : string) : point2d AS.slice =
+  let
+    val hdl = TextIO.openIn fp
+    val lines = str_split #"\n" (TextIO.inputAll hdl)
+    val _   = TextIO.closeIn hdl
+    val arr = A.array (List.length lines, (0.0, 0.0, 0.0))
+    val _ = List.foldl
+              (fn (line, i) =>
+                  if (String.size line) = 0
+                  then i + 1
+                  else
+                    let
+                      val words = str_split #" " line
+                      val a = Option.valOf (Real.fromString (List.nth (words, 0)))
+                      val b = Option.valOf (Real.fromString (List.nth (words, 1)))
+                      val c = Option.valOf (Real.fromString (List.nth (words, 2)))
+                      val pt = (a, b, c)
+                      val _ = A.update (arr, i, pt)
+                    in
+                      i + 1
+                    end)
+              0
+              lines
+  in
+    AS.slice (arr, 0, SOME (A.length arr - 1))
+  end
+
+(* -------------------------------------------------------------------------- *)
+
+type point2d = (real * real)
+
+fun dist_point2d ((x1,y1) : point2d) ((x2,y2) : point2d) : real =
+  let
+    val (d1, d2) = (R.-(x1,x2), R.-(y1,y2))
+  in
+    R.+(R.*(d1, d1), R.*(d2, d2))
+  end
+
+fun point2dToString ((x,y) : point2d) : String.string =
+  "(" ^ Real.toString x ^ "," ^ Real.toString y ^ ")"
+
+fun print_arr_point2d (arr : point2d AS.slice) : unit =
+  ArraySlice.foldl (fn (p,_) => print (point2dToString p ^ "\n")) () arr
+
+fun read2DArrayFile (fp : string) : point2d AS.slice =
+  let
+    val hdl = TextIO.openIn fp
+    val lines = str_split #"\n" (TextIO.inputAll hdl)
+    val _   = TextIO.closeIn hdl
+    val arr = A.array (List.length lines, (0.0, 0.0))
+    val _ = List.foldl
+              (fn (line, i) =>
+                  if (String.size line) = 0
+                  then i + 1
+                  else
+                    let
+                      val words = str_split #" " line
+                      val a = Option.valOf (Real.fromString (List.nth (words, 0)))
+                      val b = Option.valOf (Real.fromString (List.nth (words, 1)))
+                      val pt = (a, b)
+                      val _ = A.update (arr, i, pt)
+                    in
+                      i + 1
+                    end)
+              0
+              lines
+  in
+    AS.slice (arr, 0, SOME (A.length arr - 1))
+  end

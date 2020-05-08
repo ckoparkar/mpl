@@ -9,4 +9,5 @@ common.sml
 fib.sml
 bintree.sml
 kdtree.sml
+bhut.sml
 benchrunner.sml

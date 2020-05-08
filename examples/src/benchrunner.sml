@@ -134,6 +134,18 @@ fun run prog size iters arr_input =
     in
       ()
     end
+
+  | "seqbhut" =>
+    let
+      val pts = read2DArrayFile arr_input
+      val (box, mpts, ps) = oneStepPre pts
+      val ps2 = Bench.print_bench prog iters (fn _ => soneStep box mpts ps) (W.fromInt size)
+      val err = check ps2
+      val _ = print (Real.toString err ^ "\n")
+    in
+      ()
+    end
+
   | _  => raise Fail ("Unknown program: " ^ prog)
 
 
