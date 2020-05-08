@@ -143,6 +143,53 @@ fun sbuildqtree (box : bounding_box) (mpts : mass_point AS.slice) : bh_tree =
       end
   end
 
+fun par4 (a, b, c, d) =
+    let
+      val ((ar, br), (cr, dr)) =
+        ForkJoin.par (fn _ => ForkJoin.par (a, b),
+                      fn _ => ForkJoin.par (c, d))
+    in
+      (ar, br, cr, dr)
+    end
+
+
+fun pbuildqtree (cutoff : int) (box : bounding_box) (mpts : mass_point AS.slice) : bh_tree =
+  let
+    val len = AS.length mpts
+    val BOX (llx, lly, rux, ruy) = box
+  in
+    if len < cutoff
+    then sbuildqtree box mpts
+    else if len = 0
+    then BH_Empty
+    else if len = 1
+    then BH_Leaf (calcCentroid mpts)
+    else
+      let
+        val mpt = calcCentroid mpts
+        val (midx, midy) = ((llx + rux) / 2.0, (lly + ruy) / 2.0)
+        val b1 = BOX (llx, lly, midx, midy)
+        val b2 = BOX (llx, midy, midx, ruy)
+        val b3 = BOX (midx, midy, rux, ruy)
+        val b4 = BOX (midx, lly, rux, midy)
+        val p1 = masspointsInBox b1 mpts
+        val p2 = masspointsInBox b2 mpts
+        val p3 = masspointsInBox b3 mpts
+        val p4 = masspointsInBox b4 mpts
+        val (qq1, qq2, qq3, qq4) =
+          par4( (fn _ => pbuildqtree cutoff b1 p1)
+              , (fn _ => pbuildqtree cutoff b2 p2)
+              , (fn _ => pbuildqtree cutoff b3 p3)
+              , (fn _ => pbuildqtree cutoff b4 p4)
+              )
+        val n = (total_points qq1) + (total_points qq2) + (total_points qq3) + (total_points qq4)
+      in
+        BH_Node{mp=mpt,total_points=n,q1=qq1,q2=qq2,q3=qq3,q4=qq4}
+      end
+  end
+
+
+(* -------------------------------------------------------------------------- *)
 
 fun oneStepPre (pts : point2d AS.slice) : (bounding_box * mass_point AS.slice * particle AS.slice) =
   let
@@ -169,9 +216,27 @@ fun soneStep (box : bounding_box) (mpts : mass_point AS.slice) (ps : particle AS
                             applyAccel p accel
                           end)
                       ps2
-    val _ = A.foldl (fn (p, _) => print (particle_toString(p) ^ "\n")) () ps2
+    (* val _ = A.foldl (fn (p, _) => print (particle_toString(p) ^ "\n")) () ps2 *)
   in
     AS.full ps2
+  end
+
+fun poneStep (cutoff : int) (box : bounding_box) (mpts : mass_point AS.slice) (ps : particle AS.slice) : particle AS.slice =
+  let
+    val bht = pbuildqtree cutoff box mpts
+    (* parallel loops *)
+    val ps2 = AS.full (ForkJoin.alloc (AS.length ps))
+    val _ = Util.foreach ps (fn (i,p) =>
+                                let
+                                  val mpt = AS.sub(mpts, i)
+                                  val accel = calcAccel mpt bht
+                                  val p2 = applyAccel p accel
+                                in
+                                  AS.update (ps2, i, p2)
+                                end)
+    (* val _ = A.foldl (fn (p, _) => print (particle_toString(p) ^ "\n")) () ps2 *)
+  in
+    ps2
   end
 
 (* -------------------------------------------------------------------------- *)
@@ -189,17 +254,17 @@ fun check (ps : particle AS.slice) : real =
         (fn (i, err) =>
             let
               val idx = if i = 0 then 0 else i-1
-              val PARTICLE (mpidx, ax_idx, ay_idx) = AS.sub (ps, idx)
+              val PARTICLE (MP (_,_,midx), ax_idx, ay_idx) = AS.sub (ps, idx)
               val (force_x, force_y) =
                 AS.foldli
-                  (fn (j, PARTICLE (mpj, ax_j, ay_j), (force_x, force_y)) =>
+                  (fn (j, PARTICLE (MP (_,_,mj), ax_j, ay_j), (force_x, force_y)) =>
                       if idx = j
                       then (force_x, force_y)
                       else
                         let
                           val v = (ax_j - ax_idx, ay_j - ay_idx)
                           val r = pbbs_length v
-                          val s = ay_j * ay_idx * (gGrav / (r * r * r))
+                          val s = mj * midx * (gGrav / (r * r * r))
                           val (v2_x, v2_y) =
                             (case v of
                                (vx,vy) => (vx*s, vy*s))
@@ -210,6 +275,7 @@ fun check (ps : particle AS.slice) : real =
                   ps
               val force2 = (force_x - ax_idx, force_y - ay_idx)
               val e = pbbs_length(force2) / pbbs_length((force_x, force_y))
+              (* val _ = print(Real.toString e ^ "\n") *)
             in
               err + e
             end)

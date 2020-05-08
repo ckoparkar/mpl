@@ -85,7 +85,7 @@ fun run prog size iters arr_input =
   | "seqbuildkdtree" =>
     let
       val arr = read3DArrayFile arr_input
-                                (* val _ = print_arr_point3d arr *)
+      (* val _ = print_arr_point3d arr *)
       val tr = Bench.print_bench prog iters (fn _ => sfromList arr) (W.fromInt size)
       val n = sumkdtree tr
       val _ = print (Real.toString n ^ "\n")
@@ -140,6 +140,18 @@ fun run prog size iters arr_input =
       val pts = read2DArrayFile arr_input
       val (box, mpts, ps) = oneStepPre pts
       val ps2 = Bench.print_bench prog iters (fn _ => soneStep box mpts ps) (W.fromInt size)
+      val err = check ps2
+      val _ = print (Real.toString err ^ "\n")
+    in
+      ()
+    end
+
+  | "parbhut" =>
+    let
+      val pts = read2DArrayFile arr_input
+      val (box, mpts, ps) = oneStepPre pts
+      val cutoff = 65536
+      val ps2 = Bench.print_bench prog iters (fn _ => poneStep cutoff box mpts ps) (W.fromInt size)
       val err = check ps2
       val _ = print (Real.toString err ^ "\n")
     in
