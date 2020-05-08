@@ -10,4 +10,5 @@ fib.sml
 bintree.sml
 kdtree.sml
 bhut.sml
+coins.sml
 benchrunner.sml

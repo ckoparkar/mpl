@@ -158,6 +158,24 @@ fun run prog size iters arr_input =
       ()
     end
 
+  | "seqcoins" =>
+    let
+      val tr = Bench.print_bench prog iters (fn amt => spayA' amt coins_input []) (W.fromInt size)
+      val n = lenA tr
+      val _ = print (Int.toString n ^ "\n")
+    in
+      ()
+    end
+
+  | "parcoins" =>
+    let
+      val tr = Bench.print_bench prog iters (fn amt => ppayA' 3 amt coins_input []) (W.fromInt size)
+      val n = lenA tr
+      val _ = print (Int.toString n ^ "\n")
+    in
+      ()
+    end
+
   | _  => raise Fail ("Unknown program: " ^ prog)
 
 
