@@ -1,4 +1,6 @@
 structure W = Word
+structure P = SExpParser
+structure L = List
 
 fun str_eq s1 s2  =
   case String.compare (s1, s2) of
@@ -172,6 +174,14 @@ fun run prog size iters arr_input =
       val tr = Bench.print_bench prog iters (fn amt => ppayA' 3 amt coins_input []) (W.fromInt size)
       val n = lenA tr
       val _ = print (Int.toString n ^ "\n")
+    in
+      ()
+    end
+
+  | "seqcountnodes" =>
+    let
+      val s = P.parseFile arr_input
+      val e = parse_toplvl (L.hd s)
     in
       ()
     end
