@@ -210,7 +210,7 @@ fun run prog size iters arr_input =
 
   | "seqcountnodes2" =>
     let
-      val val s = P.parseFile arr_input
+      val s = P.parseFile arr_input
       val e = parse_toplvl (L.hd s)
       val n = Bench.print_bench prog iters (fn _ => countnodes e) (W.fromInt size)
       val _ = print (Int.toString n ^ "\n")
