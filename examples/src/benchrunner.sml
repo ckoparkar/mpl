@@ -180,8 +180,30 @@ fun run prog size iters arr_input =
 
   | "seqcountnodes" =>
     let
-      val s = P.parseFile arr_input
-      val e = parse_toplvl (L.hd s)
+      val bench_fn = (fn _ =>
+                         let
+                           val s = P.parseFile arr_input
+                           val e = parse_toplvl (L.hd s)
+                         in
+                           countnodes e
+                         end)
+      val n = Bench.print_bench prog iters bench_fn (W.fromInt size)
+      val _ = print (Int.toString n ^ "\n")
+    in
+      ()
+    end
+
+  | "parcountnodes" =>
+    let
+      val bench_fn = (fn _ =>
+                         let
+                           val s = P.parseFile arr_input
+                           val e = parse_toplvl (L.hd s)
+                         in
+                           par_countnodes e
+                         end)
+      val n = Bench.print_bench prog iters bench_fn (W.fromInt size)
+      val _ = print (Int.toString n ^ "\n")
     in
       ()
     end

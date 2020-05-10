@@ -32,8 +32,8 @@ fun spayA (amt : int) (coins : coin L.list) (acc : int L.list) : AList =
       then spayA amt coins_rst acc
       else
         let
-          val coins' = if q = 1 then coins_rst else (c,q-1) :: coins_rst
-          val left = spayA (amt - c) coins' (c :: acc)
+          val coins1 = if q = 1 then coins_rst else (c,q-1) :: coins_rst
+          val left = spayA (amt - c) coins1 (c :: acc)
           val right = spayA amt coins_rst acc
         in
           append left right
