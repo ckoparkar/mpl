@@ -31,7 +31,7 @@ fun run prog size iters arr_input =
     end
   | "parbuildfib" =>
     let
-      val cutoff = W.fromInt 19
+      val cutoff = W.fromInt 8
       val tr = Bench.print_bench prog iters (fn i => buildfib cutoff i) (W.fromInt size)
       val n = ssumtree tr
       val _ = print (Int.toString (W.toInt n) ^ "\n")
