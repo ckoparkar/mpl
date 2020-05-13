@@ -117,9 +117,12 @@ struct
 
   fun sort compare aslice =
     let
-      val result = AS.full (ForkJoin.alloc (AS.length aslice))
+      (* val result = AS.full (ForkJoin.alloc (AS.length aslice)) *)
+      val len = AS.length aslice
+      val result0 = A.tabulate (len, (fn i => AS.sub(aslice, i)))
+      val result = AS.full result0
     in
-      Util.foreach aslice (fn (i, x) => AS.update (result, i, x));
+      (* Util.foreach aslice (fn (i, x) => AS.update (result, i, x)); *)
       sortInPlace compare result;
       result
     end

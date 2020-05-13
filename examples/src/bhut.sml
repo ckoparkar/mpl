@@ -27,6 +27,7 @@ fun particle_toString (PARTICLE (a, b, c)) =
 datatype bh_tree
   = BH_Node of { mp : mass_point
                , total_points : int
+               , size: real
                , q1 : bh_tree
                , q2 : bh_tree
                , q3 : bh_tree
@@ -43,8 +44,13 @@ val dt : real = 2.0
 fun applyAccel ((PARTICLE (mp, vx, vy)) : particle) ((ax, ay) : point2d) : particle =
   PARTICLE (mp, vx + (ax * dt), vy + (ay * dt))
 
-fun isClose (MP (x1,y1,m)) (p2 : point2d) : bool =
-  (dist_point2d (x1,y1) p2) < eClose
+fun isClose (MP (x1,y1,m)) (p2 : point2d) (size: real) : bool =
+  let
+    val r2 = (dist_point2d (x1,y1) p2)
+    val sizesq = size * size
+  in
+    r2 < sizesq
+  end
 
 fun accel (MP (x1, y1, m1)) (MP (x2, y2, m2)) : (real * real) =
   let
@@ -65,10 +71,10 @@ fun calcAccel (mpt : mass_point) (bht : bh_tree) : (real * real) =
   case bht of
     BH_Empty => (0.0, 0.0)
   | BH_Leaf (MP (x, y, m)) => accel mpt (MP (x, y, m))
-  | BH_Node{mp,total_points,q1,q2,q3,q4} =>
+  | BH_Node{mp,total_points,size,q1,q2,q3,q4} =>
     let
       val MP (x,y,m) = mp
-    in if isClose mpt (x, y)
+    in if isClose mpt (x, y) size
        then
          let
            val ((x1,y1), (x2, y2), (x3, y3), (x4, y4)) =
@@ -110,6 +116,9 @@ fun total_points (bht : bh_tree) : int =
   | BH_Leaf mp => 1
   | BH_Node{total_points,...} => total_points
 
+fun max_dim (BOX (llx,lly,rux,ruy) : bounding_box) : real =
+  Real.max((rux-llx), (ruy-lly))
+
 fun sbuildqtree (box : bounding_box) (mpts : mass_point AS.slice) : bh_tree =
   let
     val len = AS.length mpts
@@ -138,8 +147,9 @@ fun sbuildqtree (box : bounding_box) (mpts : mass_point AS.slice) : bh_tree =
           , sbuildqtree b4 p4
           )
         val n = (total_points qq1) + (total_points qq2) + (total_points qq3) + (total_points qq4)
+        val size = max_dim box
       in
-        BH_Node{mp=mpt,total_points=n,q1=qq1,q2=qq2,q3=qq3,q4=qq4}
+        BH_Node{mp=mpt,total_points=n,size=size,q1=qq1,q2=qq2,q3=qq3,q4=qq4}
       end
   end
 
@@ -183,8 +193,9 @@ fun pbuildqtree (cutoff : int) (box : bounding_box) (mpts : mass_point AS.slice)
               , (fn _ => pbuildqtree cutoff b4 p4)
               )
         val n = (total_points qq1) + (total_points qq2) + (total_points qq3) + (total_points qq4)
+        val size = max_dim box
       in
-        BH_Node{mp=mpt,total_points=n,q1=qq1,q2=qq2,q3=qq3,q4=qq4}
+        BH_Node{mp=mpt,total_points=n,size=size,q1=qq1,q2=qq2,q3=qq3,q4=qq4}
       end
   end
 
@@ -206,7 +217,10 @@ fun oneStepPre (pts : point2d AS.slice) : (bounding_box * mass_point AS.slice * 
 
 fun soneStep (box : bounding_box) (mpts : mass_point AS.slice) (ps : particle AS.slice) : particle AS.slice =
   let
+    (* val t0 = Time.now() *)
     val bht = sbuildqtree box mpts
+    (* val t1 = Time.now() *)
+    (* val _ = print("time.tree: " ^ Time.fmt 4 (Time.-(t1, t0)) ^ "\n") *)
     val ps2 = A.tabulate (AS.length ps, (fn i => AS.sub(ps, i)))
     val _ = A.modifyi (fn (i, p) =>
                           let
@@ -216,14 +230,18 @@ fun soneStep (box : bounding_box) (mpts : mass_point AS.slice) (ps : particle AS
                             applyAccel p accel
                           end)
                       ps2
-    (* val _ = A.foldl (fn (p, _) => print (particle_toString(p) ^ "\n")) () ps2 *)
+    (* val t2 = Time.now() *)
+    (* val _ = print("time.forces: " ^ Time.fmt 4 (Time.-(t2, t1)) ^ "\n") *)
   in
     AS.full ps2
   end
 
 fun poneStep (cutoff : int) (box : bounding_box) (mpts : mass_point AS.slice) (ps : particle AS.slice) : particle AS.slice =
   let
+    (* val t0 = Time.now() *)
     val bht = pbuildqtree cutoff box mpts
+    (* val t1 = Time.now() *)
+    (* val _ = print("time.tree: " ^ Time.fmt 4 (Time.-(t1, t0)) ^ "\n") *)
     (* parallel loops *)
     val ps2 = AS.full (ForkJoin.alloc (AS.length ps))
     val _ = Util.foreach ps (fn (i,p) =>
@@ -235,6 +253,8 @@ fun poneStep (cutoff : int) (box : bounding_box) (mpts : mass_point AS.slice) (p
                                   AS.update (ps2, i, p2)
                                 end)
     (* val _ = A.foldl (fn (p, _) => print (particle_toString(p) ^ "\n")) () ps2 *)
+    (* val t2 = Time.now() *)
+    (* val _ = print("time.forces: " ^ Time.fmt 4 (Time.-(t2, t1)) ^ "\n") *)
   in
     ps2
   end

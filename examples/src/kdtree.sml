@@ -70,7 +70,10 @@ fun pfromListWithAxis (cutoff : W.word) (axis : int) (pts : point3d AS.slice) : 
     then sfromListWithAxis axis pts
     else
       let
-        val sorted_pts = Mergesort.sort (fn (p1, p2) => compare_point3d axis p1 p2) pts
+        (* parallel sort *)
+        (* val sorted_pts = Mergesort.sort (fn (p1, p2) => compare_point3d axis p1 p2) pts *)
+        (* sequential sort *)
+        val sorted_pts = SQuicksort.sort (fn (p1, p2) => compare_point3d axis p1 p2) pts
         val next_axis = (axis + 1) mod 3
         val pivot_idx = len div 2
         val pivot = AS.sub (sorted_pts, pivot_idx)
