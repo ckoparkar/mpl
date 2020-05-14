@@ -53,19 +53,18 @@ fun isClose (MP (x1,y1,m)) (p2 : point2d) (size: real) : bool =
   end
 
 fun accel (MP (x1, y1, m1)) (MP (x2, y2, m2)) : (real * real) =
-  let
-    val dx = x1 - x2
-    val dy = y1 - y2
-    val rsqr = (dx * dx) + (dy * dy)
-    val r = Math.sqrt rsqr
-  in
-    if r < epsilon
-    then (0.0, 0.0)
-    else let
-      val aabs = m2 / rsqr
-    in (aabs * dx, aabs * dy)
+  if Real.==(x1,x2) andalso Real.==(y1,y2) andalso Real.==(m1,m2)
+  then (0.0, 0.0)
+  else
+    let
+      val dx = x1 - x2
+      val dy = y1 - y2
+      val rsqr = (dx * dx) + (dy * dy)
+      val r = Math.sqrt rsqr
+      val s = (m1 * m2 / (rsqr * r))
+    in
+      (dx * s, dy * s)
     end
-  end
 
 fun calcAccel (mpt : mass_point) (bht : bh_tree) : (real * real) =
   case bht of

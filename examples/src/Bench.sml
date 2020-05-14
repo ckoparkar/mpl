@@ -35,8 +35,10 @@ struct
         val t0 = Time.now()
         val result = f arg
         val t1 = Time.now()
+        val diff = Time.- (t1, t0)
+        val _ = print("iter time: " ^ Time.fmt 4 diff ^ "\n")
       in
-        (result, Time.- (t1, t0))
+        (result, diff)
       end
 
   fun bench iters f arg =
