@@ -5,7 +5,7 @@ structure W = Word
 
 datatype AList
   = ANil
-  | ASing of (int L.list)
+  | ASing of int
   | Append of (AList * AList)
 
 fun lenA (ls : AList) : int =
@@ -22,53 +22,53 @@ fun append (ls1 : AList) (ls2 : AList) : AList =
 
 type coin = int * int
 
-fun spayA (amt : int) (coins : coin L.list) (acc : int L.list) : AList =
+fun spayA (amt : int) (coins : coin L.list) : AList =
   if amt = 0
-  then ASing acc
+  then ASing 1
   else
     case coins of
       ((c,q) :: coins_rst) =>
       if c > amt
-      then spayA amt coins_rst acc
+      then spayA amt coins_rst
       else
         let
           val coins1 = if q = 1 then coins_rst else (c,q-1) :: coins_rst
-          val left = spayA (amt - c) coins1 (c :: acc)
-          val right = spayA amt coins_rst acc
+          val left = spayA (amt - c) coins1
+          val right = spayA amt coins_rst
         in
           append left right
         end
     | [] => ANil
 
-fun spayA' (amt : W.word) (coins : coin L.list) (acc : int L.list) : AList =
-  spayA (W.toInt amt) coins acc
+fun spayA' (amt : W.word) (coins : coin L.list) : AList =
+  spayA (W.toInt amt) coins
 
-fun ppayA (depth : int) (amt : int) (coins : coin L.list) (acc : int L.list) : AList =
+fun ppayA (depth : int) (amt : int) (coins : coin L.list) : AList =
   if depth = 0
-  then spayA amt coins acc
+  then spayA amt coins
   else if amt = 0
-  then ASing acc
+  then ASing 1
   else
     case coins of
       ((c,q) :: coins_rst) =>
       if c > amt
-      then spayA amt coins_rst acc
+      then spayA amt coins_rst
       else
         let
           val (coins1,depth1) = if q = 1
                                 then (coins_rst, depth - 1)
                                 else ((c,q-1) :: coins_rst, depth)
           val (left, right) = ForkJoin.par
-                                ( fn _ => ppayA depth1 (amt - c) coins1 (c :: acc)
-                                , fn _ => ppayA depth amt coins_rst acc
+                                ( fn _ => ppayA depth1 (amt - c) coins1
+                                , fn _ => ppayA depth amt coins_rst
                                 )
         in
           append left right
         end
     | [] => ANil
 
-fun ppayA' (depth : int) (amt : W.word) (coins : coin L.list) (acc : int L.list) : AList =
-  ppayA depth (W.toInt amt) coins acc
+fun ppayA' (depth : int) (amt : W.word) (coins : coin L.list) : AList =
+  ppayA depth (W.toInt amt) coins
 
 val coins_input : coin list =
   let
