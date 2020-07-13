@@ -60,7 +60,7 @@ fun payA_par (depth : int) (amt : int) (coins : coin L.list) : AList =
                                 else ((c,q-1) :: coins_rst, depth)
           val (left, right) = ForkJoin.par
                                 ( fn _ => payA_par depth1 (amt - c) coins1
-                                , fn _ => payA_par depth amt coins_rst
+                                , fn _ => payA_par (depth-1) amt coins_rst
                                 )
         in
           append left right
