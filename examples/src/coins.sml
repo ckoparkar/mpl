@@ -22,53 +22,53 @@ fun append (ls1 : AList) (ls2 : AList) : AList =
 
 type coin = int * int
 
-fun spayA (amt : int) (coins : coin L.list) : AList =
+fun payA_seq (amt : int) (coins : coin L.list) : AList =
   if amt = 0
   then ASing 1
   else
     case coins of
       ((c,q) :: coins_rst) =>
       if c > amt
-      then spayA amt coins_rst
+      then payA_seq amt coins_rst
       else
         let
           val coins1 = if q = 1 then coins_rst else (c,q-1) :: coins_rst
-          val left = spayA (amt - c) coins1
-          val right = spayA amt coins_rst
+          val left = payA_seq (amt - c) coins1
+          val right = payA_seq amt coins_rst
         in
           append left right
         end
     | [] => ANil
 
-fun spayA' (amt : W.word) (coins : coin L.list) : AList =
-  spayA (W.toInt amt) coins
+fun payA_seq' (amt : W.word) (coins : coin L.list) : AList =
+  payA_seq (W.toInt amt) coins
 
-fun ppayA (depth : int) (amt : int) (coins : coin L.list) : AList =
+fun payA_par (depth : int) (amt : int) (coins : coin L.list) : AList =
   if depth = 0
-  then spayA amt coins
+  then payA_seq amt coins
   else if amt = 0
   then ASing 1
   else
     case coins of
       ((c,q) :: coins_rst) =>
       if c > amt
-      then spayA amt coins_rst
+      then payA_seq amt coins_rst
       else
         let
           val (coins1,depth1) = if q = 1
                                 then (coins_rst, depth - 1)
                                 else ((c,q-1) :: coins_rst, depth)
           val (left, right) = ForkJoin.par
-                                ( fn _ => ppayA depth1 (amt - c) coins1
-                                , fn _ => ppayA depth amt coins_rst
+                                ( fn _ => payA_par depth1 (amt - c) coins1
+                                , fn _ => payA_par depth amt coins_rst
                                 )
         in
           append left right
         end
     | [] => ANil
 
-fun ppayA' (depth : int) (amt : W.word) (coins : coin L.list) : AList =
-  ppayA depth (W.toInt amt) coins
+fun payA_par' (depth : int) (amt : W.word) (coins : coin L.list) : AList =
+  payA_par depth (W.toInt amt) coins
 
 val coins_input : coin list =
   let
