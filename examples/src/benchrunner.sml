@@ -2,6 +2,14 @@ structure W = Word
 structure P = SExpParser
 structure L = List
 
+fun get_rand (n : int) : int =
+  let
+    val t = Time.now()
+    val i = Real.round (Time.toReal t)
+  in
+    Word64.toInt (Word64.mod (Util.hash64 (Word64.fromInt i), Word64.fromInt n))
+  end
+
 fun str_eq s1 s2  =
   case String.compare (s1, s2) of
     EQUAL => true
@@ -110,12 +118,14 @@ fun run prog size iters arr_input =
     let
       val arr = read3DArrayFile arr_input
       val tr = sfromList arr
-      (* val rand = W.toInt (MLtonRandom.rand()) *)
-      (* val _ = print (Int.toString rand) *)
-      (* val idx = rand mod (AS.length arr) *)
-      val idx = 0
-      val probe = AS.sub (arr, idx)
-      val n = Bench.print_bench prog iters (fn radius => scountCorr' probe radius tr) (W.fromInt size)
+      val n = Bench.print_bench prog iters (fn radius =>
+                                               let
+                                                 val rand = get_rand(AS.length arr)
+                                                 val probe = AS.sub (arr, rand)
+                                               in
+                                                 scountCorr' probe radius tr
+                                               end)
+                                           (W.fromInt size)
       val _ = print (Int.toString n ^ "\n")
     in
       ()
@@ -125,13 +135,18 @@ fun run prog size iters arr_input =
     let
       val arr = read3DArrayFile arr_input
       val tr = sfromList arr
-      (* val rand = W.toInt (gen (W.fromInt 524288) 10) *)
-      (* val idx = rand mod (AS.length arr) *)
       val idx = 0
       val probe = AS.sub (arr, idx)
       (* 2 ^ 19 = 524288 *)
       val cutoff = 524288
-      val n = Bench.print_bench prog iters (fn radius => pcountCorr' cutoff probe radius tr) (W.fromInt size)
+      val n = Bench.print_bench prog iters (fn radius =>
+                                               let
+                                                 val rand = get_rand(AS.length arr)
+                                                 val probe = AS.sub (arr, rand)
+                                               in
+                                                 pcountCorr' cutoff probe radius tr
+                                               end)
+                                           (W.fromInt size)
       val _ = print (Int.toString n ^ "\n")
     in
       ()
