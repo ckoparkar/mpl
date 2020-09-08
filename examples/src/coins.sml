@@ -1,7 +1,6 @@
 (* https://github.com/ghc/nofib/blob/f481777acf608c132db47cb8badb618ef39a0d6f/parallel/coins/coins.hs *)
 
 structure L = List
-structure W = Word
 
 datatype AList
   = ANil
@@ -40,9 +39,6 @@ fun payA_seq (amt : int) (coins : coin L.list) : AList =
         end
     | [] => ANil
 
-fun payA_seq' (amt : W.word) (coins : coin L.list) : AList =
-  payA_seq (W.toInt amt) coins
-
 fun payA_par (depth : int) (amt : int) (coins : coin L.list) : AList =
   if depth = 0
   then payA_seq amt coins
@@ -66,9 +62,6 @@ fun payA_par (depth : int) (amt : int) (coins : coin L.list) : AList =
           append left right
         end
     | [] => ANil
-
-fun payA_par' (depth : int) (amt : W.word) (coins : coin L.list) : AList =
-  payA_par depth (W.toInt amt) coins
 
 val coins_input : coin list =
   let

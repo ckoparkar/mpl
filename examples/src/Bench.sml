@@ -1,7 +1,7 @@
 structure Bench:
 sig
-  val bench: int -> (Word.word -> 'b) -> Word.word -> ('b * Time.time * Time.time)
-  val print_bench: String.string -> int -> (Word.word -> 'b) -> Word.word -> 'b
+  val bench: int -> (int -> 'b) -> int -> ('b * Time.time * Time.time)
+  val print_bench: String.string -> int -> (int -> 'b) -> int -> 'b
 end =
 struct
   fun merge cmp ([], ys) = ys
@@ -55,7 +55,7 @@ struct
       val (result, batch, t) = bench iters f arg
       val _ = print (msg ^ "\n")
       val _ = print ("ITERS: " ^ Int.toString iters ^ "\n")
-      val _ = print ("SIZE: " ^ Int.toString (Word.toInt arg) ^ "\n")
+      val _ = print ("SIZE: " ^ Int.toString arg ^ "\n")
       val _ = print ("BATCHTIME: " ^ Time.fmt 4 batch ^ "\n")
       val _ = print ("SELFTIMED: " ^ Time.fmt 4 t ^ "\n")
     in

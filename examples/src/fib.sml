@@ -1,17 +1,15 @@
-structure W = Word
-
 fun sfib n =
-    if W.<= (n, W.fromInt 1)
+    if n <= 1
     then n
-    else W.+ (sfib (W.- (n, W.fromInt 1)),
-              sfib (W.- (n, W.fromInt 2)))
+    else (sfib (n-1)) + (sfib (n-2))
+
 fun fib cutoff n =
-    if W.<= (n, cutoff)
+    if n <= cutoff
     then sfib n
     else
       let
-        val (x,y) = ForkJoin.par (fn _ => fib cutoff (W.- (n, W.fromInt 1)),
-                                  fn _ => fib cutoff (W.- (n, W.fromInt 2)))
+        val (x,y) = ForkJoin.par (fn _ => fib cutoff (n-1),
+                                  fn _ => fib cutoff (n-2))
       in
-        W.+ (x, y)
+        x + y
       end

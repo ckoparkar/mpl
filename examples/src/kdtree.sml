@@ -1,4 +1,3 @@
-structure W = Word
 structure A = Array
 structure AS = ArraySlice
 structure R = Real
@@ -62,11 +61,11 @@ fun sfromListWithAxis (axis : int) (pts : point3d AS.slice) : kdtree =
 
 fun sfromList (pts : point3d AS.slice) : kdtree = sfromListWithAxis 0 pts
 
-fun pfromListWithAxis (cutoff : W.word) (axis : int) (pts : point3d AS.slice) : kdtree =
+fun pfromListWithAxis (cutoff : int) (axis : int) (pts : point3d AS.slice) : kdtree =
   let
     val len = AS.length pts
   in
-    if W.< ((W.fromInt len), cutoff)
+    if len < cutoff
     then sfromListWithAxis axis pts
     else
       let
@@ -95,7 +94,7 @@ fun pfromListWithAxis (cutoff : W.word) (axis : int) (pts : point3d AS.slice) : 
       end
   end
 
-fun pfromList (cutoff : W.word) (pts : point3d AS.slice) : kdtree =
+fun pfromList (cutoff : int) (pts : point3d AS.slice) : kdtree =
   pfromListWithAxis cutoff 0 pts
 
 fun sumkdtree (tr : kdtree) : real =
@@ -138,14 +137,6 @@ fun scountCorr (probe : point3d) (radius : real) (tr : kdtree) : int =
       else 0
     end
 
-fun scountCorr' (probe : point3d) (radius : W.word) (tr : kdtree) : int =
-  let
-    val r = Real.fromInt (W.toInt radius)
-  in
-    scountCorr probe r tr
-  end
-
-
 fun pcountCorr (cutoff : int) (probe : point3d) (radius : real) (tr : kdtree) : int =
   case tr of
     KdLeaf pt =>
@@ -179,10 +170,3 @@ fun pcountCorr (cutoff : int) (probe : point3d) (radius : real) (tr : kdtree) : 
         end
       else 0
     end
-
-fun pcountCorr' (cutoff : int) (probe : point3d) (radius : W.word) (tr : kdtree) : int =
-  let
-    val r = Real.fromInt (W.toInt radius)
-  in
-    pcountCorr cutoff probe r tr
-  end

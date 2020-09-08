@@ -1,6 +1,5 @@
 (* -- Ported from : https://smlnj-gitlab.cs.uchicago.edu/manticore/pmlc/blob/15539f76c33fdef2ac7fd5d4396213e06732e660/src/benchmarks/programs/barnes-hut/barnes-hut-seq.pml *)
 
-structure W = Word
 structure A = Array
 structure AS = ArraySlice
 structure R = Real
@@ -36,6 +35,17 @@ datatype bh_tree
 
   | BH_Leaf of mass_point
   | BH_Empty
+
+fun sum_bh_tree bht =
+  case bht of
+    BH_Empty => 0.0
+  | BH_Leaf (MP (x,y,m)) => x + y + m
+  | BH_Node{mp,total_points,size,q1,q2,q3,q4} =>
+    let
+      val MP (x,y,m) = mp
+    in
+      x + y + m + (sum_bh_tree q1) + (sum_bh_tree q2) + (sum_bh_tree q3) + (sum_bh_tree q4)
+    end
 
 val epsilon : real = 0.05
 val eClose : real = 0.01
@@ -214,12 +224,8 @@ fun oneStepPre (pts : point2d AS.slice) : (bounding_box * mass_point AS.slice * 
     (BOX (llx, lly, rux, ruy), AS.full mpts, AS.full ps)
   end
 
-fun soneStep (box : bounding_box) (mpts : mass_point AS.slice) (ps : particle AS.slice) : particle AS.slice =
+fun soneStep (bht : bh_tree) (mpts : mass_point AS.slice) (ps : particle AS.slice) : particle AS.slice =
   let
-    (* val t0 = Time.now() *)
-    val bht = sbuildqtree box mpts
-    (* val t1 = Time.now() *)
-    (* val _ = print("time.tree: " ^ Time.fmt 4 (Time.-(t1, t0)) ^ "\n") *)
     val ps2 = A.tabulate (AS.length ps, (fn i => AS.sub(ps, i)))
     val _ = A.modifyi (fn (i, p) =>
                           let
@@ -229,19 +235,12 @@ fun soneStep (box : bounding_box) (mpts : mass_point AS.slice) (ps : particle AS
                             applyAccel p accel
                           end)
                       ps2
-    (* val t2 = Time.now() *)
-    (* val _ = print("time.forces: " ^ Time.fmt 4 (Time.-(t2, t1)) ^ "\n") *)
   in
     AS.full ps2
   end
 
-fun poneStep (cutoff : int) (box : bounding_box) (mpts : mass_point AS.slice) (ps : particle AS.slice) : particle AS.slice =
+fun poneStep (cutoff : int) (bht : bh_tree) (mpts : mass_point AS.slice) (ps : particle AS.slice) : particle AS.slice =
   let
-    (* val t0 = Time.now() *)
-    val bht = pbuildqtree cutoff box mpts
-    (* val t1 = Time.now() *)
-    (* val _ = print("time.tree: " ^ Time.fmt 4 (Time.-(t1, t0)) ^ "\n") *)
-    (* parallel loops *)
     val ps2 = AS.full (ForkJoin.alloc (AS.length ps))
     val _ = Util.foreach ps (fn (i,p) =>
                                 let
@@ -251,9 +250,6 @@ fun poneStep (cutoff : int) (box : bounding_box) (mpts : mass_point AS.slice) (p
                                 in
                                   AS.update (ps2, i, p2)
                                 end)
-    (* val _ = A.foldl (fn (p, _) => print (particle_toString(p) ^ "\n")) () ps2 *)
-    (* val t2 = Time.now() *)
-    (* val _ = print("time.forces: " ^ Time.fmt 4 (Time.-(t2, t1)) ^ "\n") *)
   in
     ps2
   end
