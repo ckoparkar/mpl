@@ -40,6 +40,12 @@ fun dist_point3d ((x1,y1,z1) : point3d) ((x2,y2,z2) : point3d) : real =
     R.+(R.*(d1, d1), R.+( R.*(d2, d2), R.*(d3, d3)))
   end
 
+fun min_point3d ((x1,y1,z1) : point3d) ((x2,y2,z2) : point3d) : point3d =
+  (R.min (x1, x2), R.min (y1, y2), R.min (z1, z2))
+
+fun max_point3d ((x1,y1,z1) : point3d) ((x2,y2,z2) : point3d) : point3d =
+  (R.max (x1, x2), R.max (y1, y2), R.max (z1, z2))
+
 fun enclosing_point3d ((x1,y1,z1) : point3d) ((x2,y2,z2) : point3d) : point3d * point3d =
   let
     val small = (R.min (x1, x2), R.min (y1, y2), R.min (z1, z2))
@@ -48,6 +54,11 @@ fun enclosing_point3d ((x1,y1,z1) : point3d) ((x2,y2,z2) : point3d) : point3d * 
     (small, big)
   end
 
+fun coord (i : int) ((x,y,z) : point3d) =
+  case i of
+    0 => x
+  | 1 => y
+  | 2 => z
 
 fun take s n = AS.subslice (s, 0, SOME n)
 fun drop s n = AS.subslice (s, n, NONE)

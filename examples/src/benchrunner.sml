@@ -97,7 +97,8 @@ fun run prog size iters arr_input =
       (* val _ = print_arr_point3d arr *)
       val tr = Bench.print_bench prog iters (fn _ => sfromList arr) size
       val n = sumkdtree tr
-      val _ = print (Real.toString n ^ "\n")
+      val sum2 = sumpoints arr
+      val _ = print (Real.toString (n - sum2) ^ "\n")
     in ()
     end
 
@@ -147,6 +148,29 @@ fun run prog size iters arr_input =
                                                end)
                                            size
       val _ = print (Int.toString n ^ "\n")
+    in
+      ()
+    end
+
+  | "parnearest" =>
+    let
+      val arr = read3DArrayFile arr_input
+      val tr = sfromList arr
+      val cutoff = 50000
+      val res = Bench.print_bench prog iters (fn _ => allNearestNeighbors_par cutoff tr arr) size
+      val n = sumkdtree tr
+      val _ = print (Real.toString n ^ "\n")
+    in
+      ()
+    end
+
+  | "seqnearest" =>
+    let
+      val arr = read3DArrayFile arr_input
+      val tr = sfromList arr
+      val res = Bench.print_bench prog iters (fn _ => allNearestNeighbors_seq tr arr) size
+      val n = sumkdtree tr
+      val _ = print (Real.toString n ^ "\n")
     in
       ()
     end
