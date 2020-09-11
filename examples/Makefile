@@ -2,7 +2,8 @@ MPL=../build/bin/mpl
 FLAGS=-default-type int64
 
 PROGRAMS = \
-	benchrunner
+	benchrunner \
+	# nn
 
 all: $(PROGRAMS)
 

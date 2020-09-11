@@ -47,6 +47,16 @@ fun sum_bh_tree bht =
       x + y + m + (sum_bh_tree q1) + (sum_bh_tree q2) + (sum_bh_tree q3) + (sum_bh_tree q4)
     end
 
+fun count_points_bh_tree bht =
+  case bht of
+    BH_Empty => 0
+  | BH_Leaf (MP (x,y,m)) => 1
+  | BH_Node{q1,q2,q3,q4,...} =>
+    1 + (count_points_bh_tree q1) + (count_points_bh_tree q2) + (count_points_bh_tree q3) + (count_points_bh_tree q4)
+
+fun sum_mass_points (ls : mass_point AS.slice) : real =
+  AS.foldl (fn ((MP (x,y,z)), acc) => acc + x + y + z) 0.0 ls
+
 val epsilon : real = 0.05
 val eClose : real = 0.01
 val dt : real = 2.0
@@ -136,7 +146,7 @@ fun sbuildqtree (box : bounding_box) (mpts : mass_point AS.slice) : bh_tree =
     if len = 0
     then BH_Empty
     else if len = 1
-    then BH_Leaf (calcCentroid mpts)
+    then BH_Leaf (AS.sub (mpts, 0))
     else
       let
         val mpt = calcCentroid mpts
@@ -182,7 +192,7 @@ fun pbuildqtree (cutoff : int) (box : bounding_box) (mpts : mass_point AS.slice)
     else if len = 0
     then BH_Empty
     else if len = 1
-    then BH_Leaf (calcCentroid mpts)
+    then BH_Leaf (AS.sub (mpts, 0))
     else
       let
         val mpt = calcCentroid mpts

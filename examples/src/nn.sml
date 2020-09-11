@@ -280,6 +280,7 @@ struct
 
 end
 
+
 (* ==========================================================================
  * Now the main bit
  *)
@@ -290,6 +291,7 @@ val n = CLA.parseInt "N" 1000000
 val leafSize = CLA.parseInt "leafSize" 16
 val grain = CLA.parseInt "grain" 100
 val seed = CLA.parseInt "seed" 15210
+val fp = CLA.parseString "file" ""
 
 fun genReal i =
   let
@@ -301,8 +303,10 @@ fun genReal i =
 
 fun genPoint i = (genReal (2*i), genReal (2*i + 1))
 
-val (input, tm) = Util.getTime (fn _ => Seq.tabulate genPoint n)
-val _ = print ("generated input in " ^ Time.fmt 4 tm ^ "s\n")
+(* val (input, tm) = Util.getTime (fn _ => Seq.tabulate genPoint n) *)
+(* val _ = print ("generated input in " ^ Time.fmt 4 tm ^ "s\n") *)
+
+val input = read2DArrayFile fp
 
 val (tree, tm) = Util.getTime (fn _ => NN.makeTree leafSize input)
 val _ = print ("built quadtree in " ^ Time.fmt 4 tm ^ "s\n")
@@ -337,7 +341,7 @@ val red: PPM.pixel = {red=0w255, green=0w0, blue=0w0}
 val image = Seq.tabulate (fn i => Seq.tabulate (fn j => white) width) height
 fun set (i, j) x =
   if 0 <= i andalso i < height andalso
-     0 <= j andalso j < width 
+     0 <= j andalso j < width
   then ArraySlice.update (Seq.nth image i, j, x)
   else ()
 

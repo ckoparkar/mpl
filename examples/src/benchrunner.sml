@@ -22,6 +22,7 @@ fun run prog size iters arr_input =
       val _ = print (Int.toString n ^ "\n")
     in ()
     end
+
   | "parfib" =>
     let
       val cutoff = 19
@@ -29,77 +30,68 @@ fun run prog size iters arr_input =
       val _ = print (Int.toString n ^ "\n")
     in ()
     end
+
   | "seqbuildfib" =>
     let
       val tr = Bench.print_bench prog iters sbuildfib size
-      val n = ssumtree tr
-      val _ = print (Int.toString n ^ "\n")
-    in ()
+    in check_buildfib size tr
     end
+
   | "parbuildfib" =>
     let
       val cutoff = 8
       val tr = Bench.print_bench prog iters (fn i => buildfib cutoff i) size
-      val n = ssumtree tr
-      val _ = print (Int.toString n ^ "\n")
-    in ()
+    in check_buildfib size tr
     end
+
   | "seqbuildtree" =>
     let
       val tr = Bench.print_bench prog iters sbuildtree size
-      val n = ssumtree tr
-      val _ = print (Int.toString n ^ "\n")
-    in ()
+    in check_buildtree size tr
     end
+
   | "parbuildtree" =>
     let
       val cutoff = 19
       val tr = Bench.print_bench prog iters (fn i => buildtree cutoff i) size
-      val n = ssumtree tr
-      val _ = print (Int.toString n ^ "\n")
-    in ()
+    in check_buildtree size tr
     end
+
   | "seqadd1tree" =>
     let
       val tr = sbuildtree size
       val tr1 = Bench.print_bench prog iters (fn _ => sadd1tree tr) size
-      val n = ssumtree tr1
-      val _ = print (Int.toString n ^ "\n")
-    in ()
+    in check_add1tree size tr1
     end
+
   | "paradd1tree" =>
     let
       val tr = sbuildtree size
       val cutoff = 19
       val tr1 = Bench.print_bench prog iters (fn _ => add1tree cutoff tr) size
-      val n = ssumtree tr1
-      val _ = print (Int.toString n ^ "\n")
-    in ()
+    in check_add1tree size tr1
     end
+
   | "seqsumtree" =>
     let
       val tr = sbuildtree size
       val n = Bench.print_bench prog iters (fn _ => ssumtree tr) size
-      val _ = print (Int.toString n ^ "\n")
-    in ()
+    in check_sumtree size n
     end
+
   | "parsumtree" =>
     let
       val tr = sbuildtree size
       val cutoff = 19
       val n = Bench.print_bench prog iters (fn _ => sumtree cutoff tr) size
-      val _ = print (Int.toString n ^ "\n")
-    in ()
+    in check_sumtree size n
     end
+
   | "seqbuildkdtree" =>
     let
       val arr = read3DArrayFile arr_input
-      (* val _ = print_arr_point3d arr *)
       val tr = Bench.print_bench prog iters (fn _ => sfromList arr) size
-      val n = sumkdtree tr
-      val sum2 = sumpoints arr
-      val _ = print (Real.toString (n - sum2) ^ "\n")
-    in ()
+    in check_buildkdtree arr tr
     end
 
   | "parbuildkdtree" =>
@@ -109,26 +101,24 @@ fun run prog size iters arr_input =
       (* 2 ^ 19 = 524288 *)
       val cutoff = 524288
       val tr = Bench.print_bench prog iters (fn _ => pfromList cutoff arr) size
-      val n = sumkdtree tr
-      val _ = print (Real.toString n ^ "\n")
-    in ()
+    in check_buildkdtree arr tr
     end
 
   | "seqcountcorr" =>
     let
       val arr = read3DArrayFile arr_input
       val tr = sfromList arr
-      val n = Bench.print_bench prog iters (fn radius =>
+      val (query, actual) = Bench.print_bench prog iters (fn radius =>
                                                let
                                                  val rand = get_rand(AS.length arr)
                                                  val probe = AS.sub (arr, rand)
+                                                 val corr = scountCorr probe (Real.fromInt radius) tr
                                                in
-                                                 scountCorr probe (Real.fromInt radius) tr
+                                                 (probe, corr)
                                                end)
                                            size
-      val _ = print (Int.toString n ^ "\n")
     in
-      ()
+      check_countcorr arr query actual (Real.fromInt size)
     end
 
   | "parcountcorr" =>
@@ -139,29 +129,28 @@ fun run prog size iters arr_input =
       val probe = AS.sub (arr, idx)
       (* 2 ^ 19 = 524288 *)
       val cutoff = 524288
-      val n = Bench.print_bench prog iters (fn radius =>
+      val (query, actual) = Bench.print_bench prog iters (fn radius =>
                                                let
                                                  val rand = get_rand(AS.length arr)
                                                  val probe = AS.sub (arr, rand)
+                                                 val corr = pcountCorr cutoff probe (Real.fromInt radius) tr
                                                in
-                                                 pcountCorr cutoff probe (Real.fromInt radius) tr
+                                                 (probe, corr)
                                                end)
                                            size
-      val _ = print (Int.toString n ^ "\n")
     in
-      ()
+      check_countcorr arr query actual (Real.fromInt size)
     end
 
   | "parnearest" =>
     let
       val arr = read3DArrayFile arr_input
       val tr = sfromList arr
+      val _ = print ("built tree\n")
       val cutoff = 50000
       val res = Bench.print_bench prog iters (fn _ => allNearestNeighbors_par cutoff tr arr) size
-      val n = sumkdtree tr
-      val _ = print (Real.toString n ^ "\n")
     in
-      ()
+      check_nearest arr res (Real.fromInt size)
     end
 
   | "seqnearest" =>
@@ -169,10 +158,8 @@ fun run prog size iters arr_input =
       val arr = read3DArrayFile arr_input
       val tr = sfromList arr
       val res = Bench.print_bench prog iters (fn _ => allNearestNeighbors_seq tr arr) size
-      val n = sumkdtree tr
-      val _ = print (Real.toString n ^ "\n")
     in
-      ()
+      check_nearest arr res (Real.fromInt size)
     end
 
   | "seqbuildquadtree" =>
@@ -180,10 +167,9 @@ fun run prog size iters arr_input =
       val pts = read2DArrayFile arr_input
       val (box, mpts, ps) = oneStepPre pts
       val bht = Bench.print_bench prog iters (fn _ => sbuildqtree box mpts) size
-      val sum = sum_bh_tree bht
-      val _ = print (Real.toString sum ^ "\n")
+      val total_points = count_points_bh_tree bht
     in
-      ()
+      check_buildquadtree mpts bht
     end
 
   | "parbuildquadtree" =>
@@ -192,10 +178,8 @@ fun run prog size iters arr_input =
       val (box, mpts, ps) = oneStepPre pts
       val cutoff = 65536
       val bht = Bench.print_bench prog iters (fn _ => pbuildqtree cutoff box mpts) size
-      val sum = sum_bh_tree bht
-      val _ = print (Real.toString sum ^ "\n")
     in
-      ()
+      check_buildquadtree mpts bht
     end
 
   | "seqbhut" =>
@@ -204,10 +188,8 @@ fun run prog size iters arr_input =
       val (box, mpts, ps) = oneStepPre pts
       val bht = sbuildqtree box mpts
       val ps2 = Bench.print_bench prog iters (fn _ => soneStep bht mpts ps) size
-      val err = check ps2
-      val _ = print (Real.toString err ^ "\n")
     in
-      ()
+      check_bhut mpts ps2
     end
 
   | "parbhut" =>
@@ -217,31 +199,43 @@ fun run prog size iters arr_input =
       val bht = sbuildqtree box mpts
       val cutoff = 65536
       val ps2 = Bench.print_bench prog iters (fn _ => poneStep cutoff bht mpts ps) size
-      val err = check ps2
-      val _ = print (Real.toString err ^ "\n")
     in
-      ()
+      check_bhut mpts ps2
     end
 
   | "seqcoins" =>
     let
       val tr = Bench.print_bench prog iters (fn amt => payA_seq amt coins_input) size
-      val n = lenA tr
-      val _ = print (Int.toString n ^ "\n")
     in
-      ()
+      check_coins size tr
     end
 
   | "parcoins" =>
     let
       val tr = Bench.print_bench prog iters (fn amt => payA_par 3 amt coins_input) size
-      val n = lenA tr
-      val _ = print (Int.toString n ^ "\n")
     in
-      ()
+      check_coins size tr
     end
 
   | "seqcountnodes" =>
+    let
+      val s = P.parseFile arr_input
+      val e = parse_toplvl (L.hd s)
+      val n = Bench.print_bench prog iters (fn _ => countnodes e) size
+    in
+      check_countnodes n
+    end
+
+  | "parcountnodes" =>
+    let
+      val s = P.parseFile arr_input
+      val e = parse_toplvl (L.hd s)
+      val n = Bench.print_bench prog iters (fn _ => par_countnodes e) size
+    in
+      check_countnodes n
+    end
+
+  | "seqcountnodes2" =>
     let
       val bench_fn = (fn _ =>
                          let
@@ -251,44 +245,22 @@ fun run prog size iters arr_input =
                            countnodes e
                          end)
       val n = Bench.print_bench prog iters bench_fn size
-      val _ = print (Int.toString n ^ "\n")
     in
-      ()
+      check_countnodes n
     end
 
-  | "parcountnodes" =>
+  | "parcountnodes2" =>
     let
       val bench_fn = (fn _ =>
                          let
                            val s = P.parseFile arr_input
                            val e = parse_toplvl (L.hd s)
                          in
-                           par_countnodes e
+                           countnodes e
                          end)
       val n = Bench.print_bench prog iters bench_fn size
-      val _ = print (Int.toString n ^ "\n")
     in
-      ()
-    end
-
-  | "seqcountnodes2" =>
-    let
-      val s = P.parseFile arr_input
-      val e = parse_toplvl (L.hd s)
-      val n = Bench.print_bench prog iters (fn _ => countnodes e) size
-      val _ = print (Int.toString n ^ "\n")
-    in
-      ()
-    end
-
-  | "parcountnodes2" =>
-    let
-      val s = P.parseFile arr_input
-      val e = parse_toplvl (L.hd s)
-      val n = Bench.print_bench prog iters (fn _ => par_countnodes e) size
-      val _ = print (Int.toString n ^ "\n")
-    in
-      ()
+      check_countnodes n
     end
 
   | _  => raise Fail ("Unknown program: " ^ prog)

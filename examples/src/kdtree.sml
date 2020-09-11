@@ -55,11 +55,11 @@ fun sfromListWithAxis (axis : int) (pts : point3d AS.slice) : kdtree =
         val right_tr = sfromListWithAxis next_axis right_pts
         val small = min_point3d pivot (min_point3d (get_min_pt left_tr) (get_min_pt right_tr))
         val big = max_point3d pivot (max_point3d (get_max_pt left_tr) (get_max_pt right_tr))
-        val total_elems = (get_elems left_tr) + (get_elems right_tr)
+        val total_elems = (get_elems left_tr) + (get_elems right_tr) + 1
       in
         KdNode { pivot = pivot
                , num_elems = total_elems
-               , split_axis = next_axis
+               , split_axis = axis
                , min_pt = small
                , max_pt = big
                , left = left_tr
@@ -96,7 +96,7 @@ fun pfromListWithAxis (cutoff : int) (axis : int) (pts : point3d AS.slice) : kdt
       in
         KdNode { pivot = pivot
                , num_elems = total_elems
-               , split_axis = next_axis
+               , split_axis = axis
                , min_pt = small
                , max_pt = big
                , left = left_tr
@@ -121,6 +121,16 @@ fun sumkdtree (tr : kdtree) : real =
 
 fun sumpoints (ls : point3d AS.slice) : real =
   AS.foldl (fn ((x,y,z), acc) => acc + x + y + z) 0.0 ls
+
+fun least_dist (a : point3d) (b : point3d) (c : point3d) : point3d =
+  let
+    val d1 = dist_point3d a b
+    val d2 = dist_point3d a c
+  in
+    if d1 < d2
+    then b
+    else c
+  end
 
 (* -------------------------------------------------------------------------- *)
 
@@ -191,8 +201,8 @@ fun pcountCorr (cutoff : int) (probe : point3d) (radius : real) (tr : kdtree) : 
       if (sum - boxsum) < (radius * radius)
       then
         let
-          val n1 = scountCorr probe radius left
-          val n2 = scountCorr probe radius right
+          val (n1, n2) = ForkJoin.par (fn _ => pcountCorr cutoff probe radius left,
+                                       fn _ => pcountCorr cutoff probe radius right)
         in if (dist_point3d pivot probe) < (radius * radius)
            then n1 + n2 + 1
            else n1 + n2
@@ -201,16 +211,6 @@ fun pcountCorr (cutoff : int) (probe : point3d) (radius : real) (tr : kdtree) : 
            then 1
            else 0
     end
-
-fun least_dist (a : point3d) (b : point3d) (c : point3d) : point3d =
-  let
-    val d1 = dist_point3d a b
-    val d2 = dist_point3d a c
-  in
-    if d1 < d2
-    then b
-    else c
-  end
 
 (* -------------------------------------------------------------------------- *)
 
