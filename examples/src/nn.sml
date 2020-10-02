@@ -10,6 +10,9 @@ sig
 
   (* allNearestNeighbors grain quadtree *)
   val allNearestNeighbors : int -> t -> int seq
+  val sumtree : t -> real
+  val countleaves : t -> int
+  val countleaves2 : t -> int
 end =
 struct
 
@@ -60,7 +63,7 @@ struct
   fun boxOf t =
     case t of
       Leaf {anchor=(x,y), width, ...} => (x, y, x+width, y+width)
-    | Node {anchor=(x,y), width, ...} => (x, y, x+width, y+width)
+      | Node {anchor=(x,y), width, ...} => (x, y, x+width, y+width)
 
   fun indexApp grain f t =
     let
@@ -142,6 +145,7 @@ struct
           val start = AS.sub (offsets, i)
           val len = AS.sub (offsets, i+1) - start
           val childIdx = AS.subslice (sorted, start, SOME len)
+          val _ = print (Int.toString i ^ ", " ^ Int.toString (AS.length childIdx) ^ "\n")
           val qAnchor =
             case i of
               0 => (xLeft + qw, yBot + qw)
@@ -278,7 +282,41 @@ struct
       AS.full nn
     end
 
+  fun sumtree (tr, ls) : real =
+    case tr of
+      Leaf {anchor=(x,y), vertices, ...} =>
+        let
+          val n = AS.length vertices
+          val sum = AS.foldl (fn (pidx, acc) =>
+                                let val (a,b) = AS.sub (ls, pidx)
+                                in acc + a + b
+                                end)
+                            0.0
+                            vertices
+        in
+          sum
+        end
+    | Node{anchor=(x,y), children, ...} =>
+        let
+          val sum1 = AS.foldl (fn (child, acc) => acc + (sumtree (child, ls))) 0.0 children
+        in
+          sum1
+        end
+
+  fun countleaves (tr, ls) : int =
+    case tr of
+      Leaf {vertices, ...} => AS.length vertices
+    | Node {children, ...} => AS.foldl (fn (child, acc) => acc + countleaves (child,ls)) 0 children
+
+  fun countleaves2 (tr, ls) : int =
+    case tr of
+      Leaf {vertices, ...} => AS.length vertices
+    | Node {count, ...} => count
+
 end
+
+fun sum2dpoints (ls : point2d AS.slice) : real =
+  AS.foldl (fn ((x,y), acc) => acc + x + y) 0.0 ls
 
 
 (* ==========================================================================
@@ -310,6 +348,11 @@ val input = read2DArrayFile fp
 
 val (tree, tm) = Util.getTime (fn _ => NN.makeTree leafSize input)
 val _ = print ("built quadtree in " ^ Time.fmt 4 tm ^ "s\n")
+
+val _ = print ("sum points" ^ Real.toString (sum2dpoints input) ^ "\n")
+val _ = print ("sum tree" ^ Real.toString (NN.sumtree tree) ^ "\n")
+val _ = print ("leaves: " ^ Int.toString (NN.countleaves tree) ^ "\n")
+val _ = print ("leaves2: " ^ Int.toString (NN.countleaves2 tree) ^ "\n")
 
 val (nbrs, tm) = Util.getTime (fn _ => NN.allNearestNeighbors grain tree)
 val _ = print ("found all neighbors in " ^ Time.fmt 4 tm ^ "s\n")

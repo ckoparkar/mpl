@@ -62,6 +62,7 @@ fun check_countcorr (arr : point3d AS.slice) (query : point3d) (actual : int) (r
 
 fun check_nearest (arr : point3d AS.slice) (actual : point3d AS.slice) (radius : real) =
   let
+    val exact = ref 0
     val inexact = ref 0
     val not_near = ref 0
     val n = AS.length arr
@@ -73,7 +74,10 @@ fun check_nearest (arr : point3d AS.slice) (actual : point3d AS.slice) (radius :
                                      val (x2,y2,m2) = b
                                    in
                                      if req x1 x2 andalso req y1 y2 andalso req m1 m2
-                                     then true
+                                     then
+                                       let val _ = exact := !exact + 1 in
+                                         true
+                                       end
                                      else if (dist_point3d a b) < (radius * radius)
                                      then
                                        let val _ = inexact := !inexact + 1 in
@@ -85,6 +89,7 @@ fun check_nearest (arr : point3d AS.slice) (actual : point3d AS.slice) (radius :
                                        end
                                    end))
   in
+    print ("exact: " ^ Int.toString (!exact) ^ "\n") ;
     print ("inexact: " ^ Int.toString (!inexact) ^ "\n") ;
     print ("not near: " ^ Int.toString (!not_near) ^ "\n") ;
     print_check (A.all (fn b => b) bools)
@@ -94,17 +99,20 @@ fun check_buildquadtree (mpts : mass_point AS.slice) (bht : bh_tree) =
   let
     val expected = sum_mass_points mpts
     val actual = sum_bh_tree bht
+    val count1 = count_points_bh_tree bht
+    val count2 = total_points bht
   in
-    print ("Expected: " ^ Real.toString expected ^ "; Actual: " ^ Real.toString actual ^ "\n") ;
+    print ("Sum: expected= " ^ Real.toString expected ^ "; actual= " ^ Real.toString actual ^ "\n") ;
+    print ("Counts: " ^ Int.toString count1 ^ ", " ^ Int.toString count2  ^ "\n") ;
     print_check (Real.abs (expected - actual) < epsilon)
   end
 
-fun check_bhut (input : mass_point AS.slice) (ps : particle AS.slice) =
-
+fun check_bhut (input : particle AS.slice) (ps : particle AS.slice) =
   let
-    fun accel_for query = AS.foldr (fn (mp, (aax,aay)) =>
+    fun accel_for query = AS.foldr (fn (PARTICLE (mp, _, _), (aax,aay)) =>
                                        let
-                                         val (ax,ay) = accel query mp
+                                         val (PARTICLE (query_mp, _, _)) = query
+                                         val (ax,ay) = accel query_mp mp
                                        in
                                          (aax + ax, aay + ay)
                                        end)
@@ -114,7 +122,8 @@ fun check_bhut (input : mass_point AS.slice) (ps : particle AS.slice) =
     val deltas = L.map (fn idx =>
                            let
                              val query = AS.sub (input, idx)
-                             val (expected_ax, expected_ay) = accel_for query
+                             val (ax, ay) = accel_for query
+                             val PARTICLE (_, expected_ax, expected_ay) = applyAccel query (ax,ay)
                              val PARTICLE (_, actual_ax, actual_ay) = AS.sub (ps, idx)
                            in
                              (Real.abs (expected_ax - actual_ax), Real.abs (expected_ay - actual_ay))

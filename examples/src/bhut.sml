@@ -24,15 +24,14 @@ fun particle_toString (PARTICLE (a, b, c)) =
   "(" ^ mass_point_toString a ^ "," ^ Real.toString b ^ "," ^ Real.toString c ^ "," ^  ")"
 
 datatype bh_tree
-  = BH_Node of { mp : mass_point
+  = BH_Node of { centroid : mass_point
                , total_points : int
-               , size: real
-               , q1 : bh_tree
-               , q2 : bh_tree
-               , q3 : bh_tree
-               , q4 : bh_tree
+               , width: real
+               , tr1 : bh_tree
+               , tr2 : bh_tree
+               , tr3 : bh_tree
+               , tr4 : bh_tree
                }
-
   | BH_Leaf of mass_point
   | BH_Empty
 
@@ -40,36 +39,33 @@ fun sum_bh_tree bht =
   case bht of
     BH_Empty => 0.0
   | BH_Leaf (MP (x,y,m)) => x + y + m
-  | BH_Node{mp,total_points,size,q1,q2,q3,q4} =>
-    let
-      val MP (x,y,m) = mp
-    in
-      x + y + m + (sum_bh_tree q1) + (sum_bh_tree q2) + (sum_bh_tree q3) + (sum_bh_tree q4)
-    end
+  | BH_Node{centroid,total_points,width,tr1,tr2,tr3,tr4} =>
+    (sum_bh_tree tr1) + (sum_bh_tree tr2) + (sum_bh_tree tr3) + (sum_bh_tree tr4)
 
 fun count_points_bh_tree bht =
   case bht of
     BH_Empty => 0
   | BH_Leaf (MP (x,y,m)) => 1
-  | BH_Node{q1,q2,q3,q4,...} =>
-    1 + (count_points_bh_tree q1) + (count_points_bh_tree q2) + (count_points_bh_tree q3) + (count_points_bh_tree q4)
+  | BH_Node{tr1,tr2,tr3,tr4,...} =>
+    (count_points_bh_tree tr1) + (count_points_bh_tree tr2) + (count_points_bh_tree tr3) + (count_points_bh_tree tr4)
 
 fun sum_mass_points (ls : mass_point AS.slice) : real =
   AS.foldl (fn ((MP (x,y,z)), acc) => acc + x + y + z) 0.0 ls
 
-val epsilon : real = 0.05
-val eClose : real = 0.01
 val dt : real = 2.0
 
 fun applyAccel ((PARTICLE (mp, vx, vy)) : particle) ((ax, ay) : point2d) : particle =
   PARTICLE (mp, vx + (ax * dt), vy + (ay * dt))
 
-fun isClose (MP (x1,y1,m)) (p2 : point2d) (size: real) : bool =
+fun isClose (MP (x1,y1,m)) (p2 : point2d) (width: real) : bool =
   let
     val r2 = (dist_point2d (x1,y1) p2)
-    val sizesq = size * size
+    val widthsq = width * width
   in
-    r2 < sizesq
+    r2 < widthsq
+    (* (width / r2) < 0.5 *)
+    (* print (Real.toString width ^ "\n") ; *)
+    (* (r2 < 2.0) *)
   end
 
 fun accel (MP (x1, y1, m1)) (MP (x2, y2, m2)) : (real * real) =
@@ -90,23 +86,25 @@ fun calcAccel (mpt : mass_point) (bht : bh_tree) : (real * real) =
   case bht of
     BH_Empty => (0.0, 0.0)
   | BH_Leaf (MP (x, y, m)) => accel mpt (MP (x, y, m))
-  | BH_Node{mp,total_points,size,q1,q2,q3,q4} =>
-    let
-      val MP (x,y,m) = mp
-    in if isClose mpt (x, y) size
+  | BH_Node{centroid,total_points,width,tr1,tr2,tr3,tr4} =>
+    let val MP (x,y,_) = centroid
+    in
+       if
+        isClose mpt (x,y) width
+        (* true *)
        then
          let
            val ((x1,y1), (x2, y2), (x3, y3), (x4, y4)) =
-             ( calcAccel mpt q1
-             , calcAccel mpt q2
-             , calcAccel mpt q3
-             , calcAccel mpt q4
+             ( calcAccel mpt tr1
+             , calcAccel mpt tr2
+             , calcAccel mpt tr3
+             , calcAccel mpt tr4
              )
          in
            (x1 + x2 + x3 + x4, y1 + y2 + y3 + y4)
          end
        else
-         accel mpt mp
+         accel mpt centroid
     end
 
 
@@ -122,7 +120,7 @@ fun calcCentroid (mpts : mass_point AS.slice) : mass_point =
   end
 
 fun inBox (BOX (llx, lly, rux, ruy)) (MP (px, py, mx)) =
-  (px > llx) andalso (px <= rux) andalso (py > lly) andalso (py <= ruy)
+  (px >= llx) andalso (px <= rux) andalso (py >= lly) andalso (py <= ruy)
 
 fun masspointsInBox (box : bounding_box) (mpts : mass_point AS.slice) : mass_point AS.slice =
   AS.full (SeqBasis.filter 8192 (0, AS.length mpts)
@@ -134,6 +132,12 @@ fun total_points (bht : bh_tree) : int =
     BH_Empty => 0
   | BH_Leaf mp => 1
   | BH_Node{total_points,...} => total_points
+
+fun centroid (bht : bh_tree) : mass_point =
+  case bht of
+    BH_Empty => MP (0.0, 0.0, 1.0)
+  | BH_Leaf mp => mp
+  | BH_Node{centroid,...}  => centroid
 
 fun max_dim (BOX (llx,lly,rux,ruy) : bounding_box) : real =
   Real.max((rux-llx), (ruy-lly))
@@ -149,7 +153,6 @@ fun sbuildqtree (box : bounding_box) (mpts : mass_point AS.slice) : bh_tree =
     then BH_Leaf (AS.sub (mpts, 0))
     else
       let
-        val mpt = calcCentroid mpts
         val (midx, midy) = ((llx + rux) / 2.0, (lly + ruy) / 2.0)
         val b1 = BOX (llx, lly, midx, midy)
         val b2 = BOX (llx, midy, midx, ruy)
@@ -159,16 +162,29 @@ fun sbuildqtree (box : bounding_box) (mpts : mass_point AS.slice) : bh_tree =
         val p2 = masspointsInBox b2 mpts
         val p3 = masspointsInBox b3 mpts
         val p4 = masspointsInBox b4 mpts
-        val (qq1, qq2, qq3, qq4) =
+        val (tr1, tr2, tr3, tr4) =
           ( sbuildqtree b1 p1
           , sbuildqtree b2 p2
           , sbuildqtree b3 p3
           , sbuildqtree b4 p4
           )
-        val n = (total_points qq1) + (total_points qq2) + (total_points qq3) + (total_points qq4)
-        val size = max_dim box
+        val n = (total_points tr1) + (total_points tr2) + (total_points tr3) + (total_points tr4)
+        val centroid = calcCentroid mpts
+        (* val centroid = *)
+        (*   let *)
+        (*     val (MP (x1,y1,m1), n1) = (centroid tr1, total_points tr1) *)
+        (*     val (MP (x2,y2,m2), n2) = (centroid tr2, total_points tr2) *)
+        (*     val (MP (x3,y3,m3), n3) = (centroid tr3, total_points tr3) *)
+        (*     val (MP (x4,y4,m4), n4) = (centroid tr4, total_points tr4) *)
+        (*     val x = Real./(Real.+(Real.+(Real.*((Real.fromInt n1), x1), Real.*((Real.fromInt n2), x2)), Real.+(Real.*((Real.fromInt n3), x3), Real.*((Real.fromInt n4), x4))), (Real.fromInt n)) *)
+        (*     val y = Real./(Real.+(Real.+(Real.*((Real.fromInt n1), y1), Real.*((Real.fromInt n2), y2)), Real.+(Real.*((Real.fromInt n3), y3), Real.*((Real.fromInt n4), y4))), (Real.fromInt n)) *)
+        (*     val m = Real./(Real.+(Real.+(Real.*((Real.fromInt n1), m1), Real.*((Real.fromInt n2), m2)), Real.+(Real.*((Real.fromInt n3), m3), Real.*((Real.fromInt n4), m4))), (Real.fromInt n)) *)
+        (*   in *)
+        (*     MP (x,y,m) *)
+        (*   end *)
+        val width = max_dim box
       in
-        BH_Node{mp=mpt,total_points=n,size=size,q1=qq1,q2=qq2,q3=qq3,q4=qq4}
+        BH_Node{centroid=centroid,total_points=n,width=width,tr1=tr1,tr2=tr2,tr3=tr3,tr4=tr4}
       end
   end
 
@@ -195,7 +211,6 @@ fun pbuildqtree (cutoff : int) (box : bounding_box) (mpts : mass_point AS.slice)
     then BH_Leaf (AS.sub (mpts, 0))
     else
       let
-        val mpt = calcCentroid mpts
         val (midx, midy) = ((llx + rux) / 2.0, (lly + ruy) / 2.0)
         val b1 = BOX (llx, lly, midx, midy)
         val b2 = BOX (llx, midy, midx, ruy)
@@ -205,16 +220,17 @@ fun pbuildqtree (cutoff : int) (box : bounding_box) (mpts : mass_point AS.slice)
         val p2 = masspointsInBox b2 mpts
         val p3 = masspointsInBox b3 mpts
         val p4 = masspointsInBox b4 mpts
-        val (qq1, qq2, qq3, qq4) =
+        val (qtr1, qtr2, qtr3, qtr4) =
           par4( (fn _ => pbuildqtree cutoff b1 p1)
               , (fn _ => pbuildqtree cutoff b2 p2)
               , (fn _ => pbuildqtree cutoff b3 p3)
               , (fn _ => pbuildqtree cutoff b4 p4)
               )
-        val n = (total_points qq1) + (total_points qq2) + (total_points qq3) + (total_points qq4)
-        val size = max_dim box
+        val n = (total_points qtr1) + (total_points qtr2) + (total_points qtr3) + (total_points qtr4)
+        val centroid = calcCentroid mpts
+        val width = max_dim box
       in
-        BH_Node{mp=mpt,total_points=n,size=size,q1=qq1,q2=qq2,q3=qq3,q4=qq4}
+        BH_Node{centroid=centroid,total_points=n,width=width,tr1=qtr1,tr2=qtr2,tr3=qtr3,tr4=qtr4}
       end
   end
 
@@ -262,50 +278,4 @@ fun poneStep (cutoff : int) (bht : bh_tree) (mpts : mass_point AS.slice) (ps : p
                                 end)
   in
     ps2
-  end
-
-(* -------------------------------------------------------------------------- *)
-
-fun pbbs_length ((x, y) : point2d) : real =
-  Math.sqrt ((x * x) + (y * y))
-
-fun check (ps : particle AS.slice) : real =
-  let
-    val nCheck = 10
-    val gGrav = 1.0
-    val outer = A.tabulate (nCheck, (fn i => i))
-    val err =
-      A.foldl
-        (fn (i, err) =>
-            let
-              val idx = if i = 0 then 0 else i-1
-              val PARTICLE (MP (_,_,midx), ax_idx, ay_idx) = AS.sub (ps, idx)
-              val (force_x, force_y) =
-                AS.foldli
-                  (fn (j, PARTICLE (MP (_,_,mj), ax_j, ay_j), (force_x, force_y)) =>
-                      if idx = j
-                      then (force_x, force_y)
-                      else
-                        let
-                          val v = (ax_j - ax_idx, ay_j - ay_idx)
-                          val r = pbbs_length v
-                          val s = mj * midx * (gGrav / (r * r * r))
-                          val (v2_x, v2_y) =
-                            (case v of
-                               (vx,vy) => (vx*s, vy*s))
-                        in
-                          (force_x + v2_x, force_y + v2_y)
-                        end)
-                  (0.0, 0.0)
-                  ps
-              val force2 = (force_x - ax_idx, force_y - ay_idx)
-              val e = pbbs_length(force2) / pbbs_length((force_x, force_y))
-              (* val _ = print(Real.toString e ^ "\n") *)
-            in
-              err + e
-            end)
-        0.0
-        outer
-  in
-    err / (R.fromInt nCheck)
   end

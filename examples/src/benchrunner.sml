@@ -189,7 +189,7 @@ fun run prog size iters arr_input =
       val bht = sbuildqtree box mpts
       val ps2 = Bench.print_bench prog iters (fn _ => soneStep bht mpts ps) size
     in
-      check_bhut mpts ps2
+      check_bhut ps ps2
     end
 
   | "parbhut" =>
@@ -200,7 +200,7 @@ fun run prog size iters arr_input =
       val cutoff = 65536
       val ps2 = Bench.print_bench prog iters (fn _ => poneStep cutoff bht mpts ps) size
     in
-      check_bhut mpts ps2
+      check_bhut ps ps2
     end
 
   | "seqcoins" =>
