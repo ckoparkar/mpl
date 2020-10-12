@@ -4,8 +4,7 @@ FLAGS=-default-type int64
 PROGRAMS = \
 	benchrunner \
         msort \
-	nn \
-        ray
+	nn
 
 all: $(PROGRAMS)
 

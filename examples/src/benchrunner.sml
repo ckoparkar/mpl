@@ -279,6 +279,43 @@ fun run prog size iters arr_input =
       check_countnodes n
     end
 
+  | "seqmkbvh" =>
+    let
+      val scene = rgbbox
+      val bvh = Bench.print_bench prog iters (fn _ =>  mk_bvh_seq sphere_aabb (#spheres scene)) size
+    in
+      ()
+    end
+
+  | "parmkbvh" =>
+    let
+      val scene = rgbbox
+      val bvh = Bench.print_bench prog iters (fn _ =>  mk_bvh_par sphere_aabb (#spheres scene)) size
+    in
+      ()
+    end
+
+  | "seqray" =>
+    let
+      val scene = rgbbox
+      val bvh = mk_bvh_seq sphere_aabb (#spheres scene)
+      val cam = camera_from_scene size size scene
+      val pixels = Bench.print_bench prog iters (fn size => render_seq bvh size size cam) size
+    in
+      ()
+    end
+
+  | "parray" =>
+    let
+      val scene = rgbbox
+      val bvh = mk_bvh_seq sphere_aabb (#spheres scene)
+      val cam = camera_from_scene size size scene
+      val pixels = Bench.print_bench prog iters (fn size => render_par bvh size size cam) size
+    in
+      ()
+    end
+
+
   | _  => raise Fail ("Unknown program: " ^ prog)
 
 

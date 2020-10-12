@@ -15,5 +15,6 @@ bhut.sml
 coins.sml
 parse_grammar.sml
 countnodes.sml
+ray.sml
 checks.sml
 benchrunner.sml

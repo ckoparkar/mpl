@@ -11,6 +11,9 @@ coloured, reflective spheres.  It parallelises two things
 
 type vec3 = {x: real, y: real, z: real}
 
+fun show_vec3 (v: vec3) =
+  "(" ^ Real.toString (#x v) ^ "," ^ Real.toString (#y v) ^ "," ^ Real.toString (#z v) ^ ")"
+
 local
     fun vf f (v1: vec3) (v2: vec3) =
         {x= f (#x v1, #x v2),
@@ -40,6 +43,9 @@ end
 
 type aabb = { min: vec3, max: vec3 }
 
+fun show_aabb (x: aabb) =
+  "{min:" ^ (show_vec3 (#min x)) ^ ", max: " ^ (show_vec3 (#max x)) ^ "}"
+
 fun min x y : real =
     if x < y then x else y
 
@@ -63,54 +69,6 @@ fun centre (aabb: aabb) =
       z = (#z (#min aabb) + (#z (#max aabb) - #z (#min aabb)))
     }
 
-datatype 'a bvh = bvh_leaf of aabb * 'a
-                | bvh_split of aabb * 'a bvh * 'a bvh
-
-fun bvh_aabb (bvh_leaf (box, _)) = box
-  | bvh_aabb (bvh_split (box, _, _)) = box
-
-(* Couldn't find a sorting function in MLtons stdlib - this is from Rosetta Code. *)
-local
-    fun merge cmp ([], ys) = ys
-      | merge cmp (xs, []) = xs
-      | merge cmp (xs as x::xs', ys as y::ys') =
-          case cmp (x, y) of
-               GREATER => y :: merge cmp (xs, ys')
-             | _       => x :: merge cmp (xs', ys)
-    fun sort cmp [] = []
-      | sort cmp [x] = [x]
-      | sort cmp xs =
-        let
-          val ys = List.take (xs, length xs div 2)
-          val zs = List.drop (xs, length xs div 2)
-        in
-          merge cmp (sort cmp ys, sort cmp zs)
-        end
-in
-fun mk_bvh f all_objs =
-    let fun mk _ _ [] = raise Fail "mk_bvh: no nodes"
-          | mk _ _ [x] = bvh_leaf(f x, x)
-          | mk d n xs =
-            let val axis = case d mod 3 of 0 => #x
-                                         | 1 => #y
-                                         | _ => #z
-                fun cmp (x, y) =
-                    Real.compare(axis(centre(f x)),
-                                 axis(centre(f y)))
-                val xs_sorted = sort cmp xs
-                val xs_left = List.take(xs_sorted, n div 2)
-                val xs_right = List.drop(xs_sorted, n div 2)
-                fun do_left () = mk (d+1) (n div 2) xs_left
-                fun do_right () = mk (d+1) (n-(n div 2)) xs_right
-                val (left, right) =
-                    if n < 100
-                    then (do_left(), do_right())
-                    else ForkJoin.par (do_left, do_right)
-                val box = enclosing (bvh_aabb left) (bvh_aabb right)
-            in bvh_split (box, left, right) end
-    in mk 0 (length all_objs) all_objs end
-end
-
 type pos = vec3
 type dir = vec3
 type colour = vec3
@@ -133,6 +91,80 @@ type sphere = { pos: pos
               , colour: colour
               , radius: real
               }
+
+fun show_sphere (s: sphere) =
+  "{" ^ "pos: " ^ (show_vec3 (#pos s)) ^ ", colour: " ^ show_vec3 (#colour s) ^ ", radius: " ^ Real.toString (#radius s) ^ "}"
+
+fun show_spheres (ls: sphere list) =
+  List.foldl (fn (x,acc) => acc ^ "," ^ x) "" (List.map show_sphere ls)
+
+datatype 'a bvh = bvh_leaf of aabb * 'a
+                | bvh_split of aabb * 'a bvh * 'a bvh
+
+fun bvh_aabb (bvh_leaf (box, _)) = box
+  | bvh_aabb (bvh_split (box, _, _)) = box
+
+fun merge cmp ([], ys) = ys
+    | merge cmp (xs, []) = xs
+    | merge cmp (xs as x::xs', ys as y::ys') =
+    case cmp (x, y) of
+      GREATER => y :: merge cmp (xs, ys')
+      | _       => x :: merge cmp (xs', ys)
+fun sort cmp [] = []
+    | sort cmp [x] = [x]
+    | sort cmp xs =
+    let
+      val ys = List.take (xs, length xs div 2)
+      val zs = List.drop (xs, length xs div 2)
+    in
+      merge cmp (sort cmp ys, sort cmp zs)
+    end
+
+fun mk_par _ _ _ [] = raise Fail "mk_bvh: no nodes"
+    | mk_par _ f _ [x] = bvh_leaf(f x, x)
+    | mk_par d f n xs =
+    let val axis = case d mod 3 of 0 => #x
+                                   | 1 => #y
+                                   | _ => #z
+        fun cmp (x, y) =
+          Real.compare(axis(centre(f x)),
+                       axis(centre(f y)))
+        val xs_sorted = sort cmp xs
+        val xs_left = List.take(xs_sorted, n div 2)
+        val xs_right = List.drop(xs_sorted, n div 2)
+        fun do_left () = mk_par (d+1) f (n div 2) xs_left
+        fun do_right () = mk_par (d+1) f (n-(n div 2)) xs_right
+        val (left, right) =
+          if n < 100
+          then (do_left(), do_right())
+          else ForkJoin.par (do_left, do_right)
+        val box = enclosing (bvh_aabb left) (bvh_aabb right)
+    in bvh_split (box, left, right)
+    end
+
+fun mk_bvh_par (f: sphere -> aabb) all_objs =
+    mk_par 0 f (length all_objs) all_objs
+
+fun mk_seq _ _ _ [] = raise Fail "mk_bvh: no nodes"
+    | mk_seq _ f _ [x] = bvh_leaf(f x, x)
+    | mk_seq d f n xs =
+    let val axis = case d mod 3 of 0 => #x
+                                   | 1 => #y
+                                   | _ => #z
+        fun cmp (x, y) =
+          Real.compare(axis(centre(f x)),
+                       axis(centre(f y)))
+        val xs_sorted = sort cmp xs
+        val xs_left = List.take(xs_sorted, n div 2)
+        val xs_right = List.drop(xs_sorted, n div 2)
+        val left = mk_seq (d+1) f (n div 2) xs_left
+        val right = mk_seq (d+1) f (n-(n div 2)) xs_right
+        val box = enclosing (bvh_aabb left) (bvh_aabb right)
+    in bvh_split (box, left, right)
+    end
+
+fun mk_bvh_seq (f: sphere -> aabb) all_objs =
+    mk_seq 0 f (length all_objs) all_objs
 
 fun sphere_aabb {pos, colour=_, radius} =
     {min = vec_sub pos {x=radius, y=radius, z=radius},
@@ -189,6 +221,11 @@ fun aabb_hit aabb ({origin, dir}: ray) tmin0 tmax0 =
   end
 
 type objs = sphere bvh
+
+fun show_objs (x: objs) =
+  case x of
+    bvh_leaf (box, s) => "bvh_leaf{aabb: " ^ (show_aabb box)  ^ ", sphere: " ^ show_sphere s ^ "}"
+  | bvh_split (box, left, right) => "bvh_split{aabb: " ^ (show_aabb box)  ^ ", left: " ^ show_objs left ^ ", right: " ^ show_objs right ^ "}"
 
 fun objs_hit (bvh_leaf (_, s)) r t_min t_max =
     sphere_hit s r t_min t_max
@@ -299,14 +336,28 @@ fun image2ppm6 out ({pixels, height, width}: image) =
        before Array.app onPixel pixels
     end
 
-fun render objs width height cam : image =
+fun render_seq objs width height cam : image =
+    let fun pixel l =
+            let val i = l mod width
+                val j = height - l div width
+            in colour_to_pixel (trace_ray objs width height cam j i)
+            end
+        val pixels = Array.tabulate (height*width, pixel)
+    in {width = width,
+        height = height,
+        pixels = pixels
+       }
+    end
+
+fun render_par objs width height cam : image =
     let val pixels = ForkJoin.alloc (height*width)
         fun pixel l =
             let val i = l mod width
                 val j = height - l div width
             in Array.update (pixels,
                              l,
-                             colour_to_pixel (trace_ray objs width height cam j i)) end
+                             colour_to_pixel (trace_ray objs width height cam j i))
+            end
         val _ = ForkJoin.parfor 256 (0,height*width) pixel
     in {width = width,
         height = height,
@@ -320,10 +371,16 @@ type scene = { camLookFrom: pos
              , spheres: sphere list
              }
 
-fun from_scene width height (scene: scene) : objs * camera =
-  (mk_bvh sphere_aabb (#spheres scene),
-   camera (#camLookFrom scene) (#camLookAt scene) {x=0.0, y=1.0, z=0.0}
-   (#camFov scene) (real width/real height))
+fun show_scene (s: scene) =
+  "{look_from: " ^ show_vec3 (#camLookFrom s) ^ "," ^
+  "look_at: " ^ show_vec3 (#camLookAt s) ^ "," ^
+  "fov:" ^ Real.toString (#camFov s) ^ "," ^
+  "spheres:" ^ show_spheres (#spheres s)  ^ "}"
+
+fun camera_from_scene width height (scene: scene) : camera =
+  camera (#camLookFrom scene) (#camLookAt scene) {x=0.0, y=1.0, z=0.0}
+   (#camFov scene) (real width/real height)
+
 
 fun tabulate_2d m n f =
     List.concat (List.tabulate (m, fn j => List.tabulate (n, fn i => f (j, i))))
@@ -377,7 +434,7 @@ val rgbbox : scene =
     end
 
 val irreg : scene =
-    let val n = 100
+    let val n = 25
         val k = 600.0
         val bottom =
             tabulate_2d n n (fn (x,z) =>
@@ -393,6 +450,8 @@ val irreg : scene =
        , camFov = 75.0 }
     end
 
+(*
+
 val height = CommandLineArgs.parseInt "m" 200
 val width = CommandLineArgs.parseInt "n" 200
 val f = CommandLineArgs.parseString "f" ""
@@ -403,15 +462,20 @@ val scene = case scene_name of
               | "irreg" => irreg
               | s => raise Fail ("No such scene: " ^ s)
 
+
 val _ = print ("Using scene '" ^ scene_name ^ "' (-s to switch).\n")
 
+(* val _ = print (show_scene scene ^ "\n") *)
+
+val cam = camera_from_scene width height scene
 val t0 = Time.now ()
-val (objs, cam) = from_scene width height scene
+val objs = mk_bvh_seq sphere_aabb (#spheres scene)
+(* val _ = print (show_objs objs ^ "\n") *)
 val t1 = Time.now ()
 val _ = print ("Scene BVH construction in " ^ Time.fmt 4 (Time.- (t1, t0)) ^ "s.\n")
 
 val t0 = Time.now ()
-val result = render objs width height cam
+val result = render_seq objs width height cam
 val t1 = Time.now ()
 
 val _ = print ("Rendering in " ^ Time.fmt 4 (Time.- (t1, t0)) ^ "s.\n")
@@ -425,3 +489,5 @@ val _ = if f <> "" then
                before TextIO.closeOut out
             end
         else print ("-f not passed, so not writing image to file.\n")
+
+*)
