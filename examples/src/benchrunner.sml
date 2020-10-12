@@ -39,7 +39,7 @@ fun run prog size iters arr_input =
 
   | "parbuildfib" =>
     let
-      val cutoff = 8
+      val cutoff = 6
       val tr = Bench.print_bench prog iters (fn i => buildfib cutoff i) size
     in check_buildfib size tr
     end
@@ -108,7 +108,7 @@ fun run prog size iters arr_input =
     let
       val arr = read3DArrayFile arr_input
       val tr = sfromList arr
-      val (query, actual) = Bench.print_bench prog iters (fn radius =>
+      (* val (query, actual) = Bench.print_bench prog iters (fn radius =>
                                                let
                                                  val rand = get_rand(AS.length arr)
                                                  val probe = AS.sub (arr, rand)
@@ -116,9 +116,14 @@ fun run prog size iters arr_input =
                                                in
                                                  (probe, corr)
                                                end)
-                                           size
+                                           size *)
+      val radius = 10.0
+      val arr' = AS.subslice(arr, 0, SOME size)
+      val counts = Bench.print_bench prog iters (fn _ => allCountCorr_seq radius tr arr') size
+      val query = AS.sub(arr', 4)
+      val count = AS.sub(counts, 4)
     in
-      check_countcorr arr query actual (Real.fromInt size)
+      check_countcorr arr query count radius
     end
 
   | "parcountcorr" =>
@@ -128,8 +133,8 @@ fun run prog size iters arr_input =
       val idx = 0
       val probe = AS.sub (arr, idx)
       (* 2 ^ 19 = 524288 *)
-      val cutoff = 524288
-      val (query, actual) = Bench.print_bench prog iters (fn radius =>
+      val cutoff = 50000
+      (* val (query, actual) = Bench.print_bench prog iters (fn radius =>
                                                let
                                                  val rand = get_rand(AS.length arr)
                                                  val probe = AS.sub (arr, rand)
@@ -137,9 +142,14 @@ fun run prog size iters arr_input =
                                                in
                                                  (probe, corr)
                                                end)
-                                           size
+                                           size *)
+      val radius = 10.0
+      val arr' = AS.subslice(arr, 0, SOME size)
+      val counts = Bench.print_bench prog iters (fn _ => allCountCorr_par cutoff radius tr arr') size
+      val query = AS.sub(arr', 4)
+      val count = AS.sub(counts, 4)
     in
-      check_countcorr arr query actual (Real.fromInt size)
+      check_countcorr arr query count (Real.fromInt size)
     end
 
   | "parnearest" =>
@@ -147,10 +157,10 @@ fun run prog size iters arr_input =
       val arr = read3DArrayFile arr_input
       val tr = sfromList arr
       val _ = print ("built tree\n")
-      val cutoff = 50000
+      val cutoff = 1024
       val res = Bench.print_bench prog iters (fn _ => allNearestNeighbors_par cutoff tr arr) size
     in
-      check_nearest arr res (Real.fromInt size)
+     ()
     end
 
   | "seqnearest" =>
@@ -159,7 +169,7 @@ fun run prog size iters arr_input =
       val tr = sfromList arr
       val res = Bench.print_bench prog iters (fn _ => allNearestNeighbors_seq tr arr) size
     in
-      check_nearest arr res (Real.fromInt size)
+     ()
     end
 
   | "seqbuildquadtree" =>
@@ -219,8 +229,11 @@ fun run prog size iters arr_input =
 
   | "seqcountnodes" =>
     let
+      val t0 = Time.now()
       val s = P.parseFile arr_input
       val e = parse_toplvl (L.hd s)
+      val t1 = Time.now()
+      val _ = print ("Parsed in: " ^ Time.fmt 4 (Time.-(t1, t0)) ^ "\n")
       val n = Bench.print_bench prog iters (fn _ => countnodes e) size
     in
       check_countnodes n
@@ -228,8 +241,11 @@ fun run prog size iters arr_input =
 
   | "parcountnodes" =>
     let
+      val t0 = Time.now()
       val s = P.parseFile arr_input
       val e = parse_toplvl (L.hd s)
+      val t1 = Time.now()
+      val _ = print ("Parsed in: " ^ Time.fmt 4 (Time.-(t1, t0)) ^ "\n")
       val n = Bench.print_bench prog iters (fn _ => par_countnodes e) size
     in
       check_countnodes n
