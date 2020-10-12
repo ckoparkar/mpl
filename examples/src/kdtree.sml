@@ -79,9 +79,9 @@ fun pfromListWithAxis (cutoff : int) (axis : int) (pts : point3d AS.slice) : kdt
     else
       let
         (* parallel sort *)
-        (* val sorted_pts = Mergesort.sort (fn (p1, p2) => compare_point3d axis p1 p2) pts *)
+        val sorted_pts = Mergesort.sort (fn (p1, p2) => compare_point3d axis p1 p2) pts
         (* sequential sort *)
-        val sorted_pts = SQuicksort.sort (fn (p1, p2) => compare_point3d axis p1 p2) pts
+        (* val sorted_pts = SQuicksort.sort (fn (p1, p2) => compare_point3d axis p1 p2) pts *)
         val next_axis = (axis + 1) mod 3
         val pivot_idx = len div 2
         val pivot = AS.sub (sorted_pts, pivot_idx)
@@ -260,13 +260,36 @@ fun allNearestNeighbors_par (grain : int) (tr : kdtree) (pts : point3d AS.slice)
   let
     val n = AS.length pts
     val result = ForkJoin.alloc n
-    val num_proc = 32
   in
     ForkJoin.parfor grain (0, n)
                     (fn i =>
                         let
                           val j = AS.sub (pts, i)
                           val nn = nearest tr j
+                        in
+                          A.update (result, i, nn)
+                        end);
+    AS.full result
+  end
+
+fun allCountCorr_seq (radius : real) (tr : kdtree) (pts : point3d AS.slice) : int AS.slice =
+  let
+    val n = AS.length pts
+    val result = A.tabulate (n, (fn i => scountCorr (AS.sub (pts, i)) radius tr))
+  in
+    AS.full result
+  end
+
+fun allCountCorr_par (grain : int) (radius : real) (tr : kdtree) (pts : point3d AS.slice) : int AS.slice =
+  let
+    val n = AS.length pts
+    val result = ForkJoin.alloc n
+  in
+    ForkJoin.parfor 4 (0, n)
+                    (fn i =>
+                        let
+                          val j = AS.sub (pts, i)
+                          val nn = pcountCorr grain (AS.sub (pts, i)) radius tr
                         in
                           A.update (result, i, nn)
                         end);

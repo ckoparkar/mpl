@@ -1,8 +1,11 @@
 MPL=../build/bin/mpl
 FLAGS=-default-type int64
 
-PROGRAMS = benchrunner \
-	nn
+PROGRAMS = \
+	benchrunner \
+        msort \
+	nn \
+        ray
 
 all: $(PROGRAMS)
 
