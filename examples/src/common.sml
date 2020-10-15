@@ -38,7 +38,7 @@ fun compare_point3d (axis : int) ((x1,y1,z1) : point3d) ((x2,y2,z2) : point3d) :
   if ieq axis 0
   then compare_real x1 x2
   else if ieq axis 1
-  then compare_real y2 y2
+  then compare_real y1 y2
   else compare_real z1 z2
 
 fun dist_point3d ((x1,y1,z1) : point3d) ((x2,y2,z2) : point3d) : real =

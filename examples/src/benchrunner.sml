@@ -98,8 +98,7 @@ fun run prog size iters arr_input =
     let
       val arr = read3DArrayFile arr_input
       (* val _ = print_arr_point3d arr *)
-      (* 2 ^ 19 = 524288 *)
-      val cutoff = 524288
+      val cutoff = 5000
       val tr = Bench.print_bench prog iters (fn _ => pfromList cutoff arr) size
     in check_buildkdtree arr tr
     end
@@ -117,13 +116,13 @@ fun run prog size iters arr_input =
                                                  (probe, corr)
                                                end)
                                            size *)
-      val radius = 10.0
+      val radius = 100.0
       val arr' = AS.subslice(arr, 0, SOME size)
       val counts = Bench.print_bench prog iters (fn _ => allCountCorr_seq radius tr arr') size
       val query = AS.sub(arr', 4)
-      val count = AS.sub(counts, 4)
+      val actual = AS.sub(counts, 4)
     in
-      check_countcorr arr query count radius
+      check_countcorr arr query actual radius
     end
 
   | "parcountcorr" =>
@@ -143,13 +142,13 @@ fun run prog size iters arr_input =
                                                  (probe, corr)
                                                end)
                                            size *)
-      val radius = 10.0
+      val radius = 100.0
       val arr' = AS.subslice(arr, 0, SOME size)
       val counts = Bench.print_bench prog iters (fn _ => allCountCorr_par cutoff radius tr arr') size
       val query = AS.sub(arr', 4)
-      val count = AS.sub(counts, 4)
+      val actual = AS.sub(counts, 4)
     in
-      check_countcorr arr query count (Real.fromInt size)
+      check_countcorr arr query actual radius
     end
 
   | "parnearest" =>
@@ -160,7 +159,7 @@ fun run prog size iters arr_input =
       val cutoff = 1024
       val res = Bench.print_bench prog iters (fn _ => allNearestNeighbors_par cutoff tr arr) size
     in
-     ()
+     check_nearest arr res
     end
 
   | "seqnearest" =>
@@ -169,7 +168,7 @@ fun run prog size iters arr_input =
       val tr = sfromList arr
       val res = Bench.print_bench prog iters (fn _ => allNearestNeighbors_seq tr arr) size
     in
-     ()
+     check_nearest arr res
     end
 
   | "seqbuildquadtree" =>

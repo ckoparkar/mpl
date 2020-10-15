@@ -60,39 +60,23 @@ fun check_countcorr (arr : point3d AS.slice) (query : point3d) (actual : int) (r
     print_check (expected = actual)
   end
 
-fun check_nearest (arr : point3d AS.slice) (actual : point3d AS.slice) (radius : real) =
+fun check_nearest (arr : point3d AS.slice) (actual : point3d AS.slice) =
   let
-    val exact = ref 0
-    val inexact = ref 0
-    val not_near = ref 0
     val n = AS.length arr
-    val bools = A.tabulate (n, (fn i =>
+    val check = AS.foldli (fn (i, a, acc) =>
                                    let
-                                     val a = AS.sub (arr, i)
+                                     (* val a = AS.sub (arr, i) *)
                                      val (x1,y1,m1) = a
                                      val b = AS.sub (actual, i)
                                      val (x2,y2,m2) = b
                                    in
                                      if req x1 x2 andalso req y1 y2 andalso req m1 m2
-                                     then
-                                       let val _ = exact := !exact + 1 in
-                                         true
-                                       end
-                                     else if (dist_point3d a b) < (radius * radius)
-                                     then
-                                       let val _ = inexact := !inexact + 1 in
-                                         true
-                                       end
-                                     else
-                                       let val _ = not_near := !not_near + 1 in
-                                         true
-                                       end
-                                   end))
+                                     then acc andalso true
+                                     else false
+                                   end)
+                         true arr
   in
-    print ("exact: " ^ Int.toString (!exact) ^ "\n") ;
-    print ("inexact: " ^ Int.toString (!inexact) ^ "\n") ;
-    print ("not near: " ^ Int.toString (!not_near) ^ "\n") ;
-    print_check (A.all (fn b => b) bools)
+    print_check check
   end
 
 fun check_buildquadtree (mpts : mass_point AS.slice) (bht : bh_tree) =
