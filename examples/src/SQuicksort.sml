@@ -94,17 +94,11 @@ struct
       fun qsort (a, n) =
         if (n < 16) then insertSort(a, n)
         else let
-            val (l, m, doMid) = split3(a,n)
-        in if (n <= grainsize) then
-               (qsort (a, l-a);
+          val (l, m, doMid) = split3(a,n)
+        in
+          (qsort (a, l-a);
                 (if doMid then qsort(l, m-l) else ());
                 qsort (m, a+n-m))
-           else let val left = (fn () => qsort (a, l-a))
-                    val mid = (fn () => qsort (l, m-l))
-                    val right = (fn () => qsort (m, a+n-m))
-                    val maybeMid = if doMid then (fn () => ((mid,right);()))
-                                   else right
-                in (left,maybeMid);() end
         end
 
   in qsort (start,n) end
