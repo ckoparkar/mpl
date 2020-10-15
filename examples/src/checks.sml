@@ -155,3 +155,15 @@ fun check_coins (amt : int) (ls : AList) =
 
 fun check_countnodes (count : int) =
   print (Int.toString count ^ "\n")
+
+fun check_sorted (f : ('a * 'a) -> order) (arr : 'a AS.slice) =
+  let
+    val len = AS.length arr
+    val res = ref true
+  in
+    Util.for (0, len-2) (fn i =>
+                            case f ((AS.sub (arr, i)), (AS.sub (arr, i+1))) of
+                                GREATER => res := false
+                              | _ => ()) ;
+    print_check (!res)
+  end

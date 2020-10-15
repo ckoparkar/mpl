@@ -315,6 +315,23 @@ fun run prog size iters arr_input =
       ()
     end
 
+  | "seqmergesort" =>
+    let
+      val seed = Random.rand (0, 100)
+      val arr = AS.full (A.tabulate (size, (fn i => Random.randReal seed)))
+      val sorted = Bench.print_bench prog iters (fn _ => SMergesort.sort Real.compare arr) size
+    in
+      check_sorted Real.compare sorted
+    end
+
+  | "parmergesort" =>
+    let
+      val seed = Random.rand (0, 100)
+      val arr = AS.full (A.tabulate (size, (fn i => Random.randReal seed)))
+      val sorted = Bench.print_bench prog iters (fn _ => Mergesort.sort Real.compare arr) size
+    in
+      check_sorted Real.compare sorted
+    end
 
   | _  => raise Fail ("Unknown program: " ^ prog)
 
