@@ -8,14 +8,18 @@ sig
     -> 'a seq               (* output *)
     -> unit
 
+  val mergeSerial: ('a * 'a -> order) -> 'a seq * 'a seq -> 'a seq
+
+(*
   val writeMerge:
        ('a * 'a -> order)   (* compare *)
     -> 'a seq * 'a seq      (* (sorted) sequences to merge *)
     -> 'a seq               (* output *)
     -> unit
 
-  val mergeSerial: ('a * 'a -> order) -> 'a seq * 'a seq -> 'a seq
   val merge: ('a * 'a -> order) -> 'a seq * 'a seq -> 'a seq
+*)
+
 end =
 struct
 
@@ -69,6 +73,7 @@ struct
       out
     end
 
+(*
   fun writeMerge cmp (s1, s2) t =
     if AS.length t <= 4096 then
       writeMergeSerial cmp (s1, s2) t
@@ -103,5 +108,6 @@ struct
       writeMerge cmp (s1, s2) out;
       out
     end
+*)
 
 end

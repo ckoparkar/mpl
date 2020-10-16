@@ -28,7 +28,7 @@ struct
       (* recursively sort, writing result into t *)
       writeSort cmp sl tl; writeSort cmp sr tr ;
       (* merge back from t into s *)
-      SMerge.writeMerge cmp (tl, tr) s;
+      SMerge.writeMergeSerial cmp (tl, tr) s;
       ()
     end
 
@@ -46,7 +46,7 @@ struct
       (* recursively in-place sort sl and sr *)
       sortInPlace' cmp sl tl ; sortInPlace' cmp sr tr ;
       (* merge into t *)
-      SMerge.writeMerge cmp (sl, sr) t;
+      SMerge.writeMergeSerial cmp (sl, sr) t;
       ()
     end
 
