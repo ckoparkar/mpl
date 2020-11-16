@@ -332,6 +332,22 @@ fun run prog size iters arr_input =
       check_sorted Real.compare sorted
     end
 
+  | "seqfoldconstants" =>
+    let
+      val exp = build_exp size
+      val exp2 = Bench.print_bench prog iters (fn _ => fold_constants exp) size
+    in
+      print (Int.toString (sum_exp exp2))
+    end
+
+  | "parfoldconstants" =>
+    let
+      val exp = build_exp size
+      val exp2 = Bench.print_bench prog iters (fn _ => fold_constants_par 0 exp) size
+    in
+      print (Int.toString (sum_exp exp2))
+    end
+
   | "seqcompiler" =>
     let
       val ex = make_big_ex size 0

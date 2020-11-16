@@ -17,6 +17,7 @@ bhut.sml
 coins.sml
 parse_grammar.sml
 countnodes.sml
+foldconstants.sml
 ray.sml
 compiler.sml
 checks.sml
