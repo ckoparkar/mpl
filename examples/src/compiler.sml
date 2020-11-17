@@ -2,6 +2,7 @@
 
 structure L = List
 structure LP = ListPair
+structure P = MLton.Parallel
 
 (* --------------------------------------------------------------------------------
  * -- Data types common to all languages *)
@@ -358,8 +359,10 @@ fun print_pseudox86 p =
 val global_gensym_counter = ref 0
 
 fun gensym () =
-  (global_gensym_counter := !global_gensym_counter + 1 ;
-  "gensym_" ^ Int.toString (!global_gensym_counter))
+    let
+      val next = P.fetchAndAdd global_gensym_counter 1
+    in "gensym_" ^ Int.toString next
+    end
 
 (* -------------------------------------------------------------------------------- *)
 (*  * -- Uniqify *)
@@ -417,10 +420,69 @@ fun uniqify_expa var_env exp =
        end
   | IfA (a,b,c) => IfA (uniqify_simpl_expa var_env a, uniqify_expa var_env b, uniqify_expa var_env c)
 
+fun par3 (a, b, c, d) =
+    let
+      val ((ar, br), cr) =
+        ForkJoin.par (fn _ => ForkJoin.par (a, b),
+                      fn _ => c)
+    in
+      (ar, br, cr)
+    end
+
+fun uniqify_expa_par var_env exp =
+  case exp of
+    SimplA (simpl) => SimplA (uniqify_simpl_expa var_env simpl)
+  | LetA (v, rhs, bod) =>
+     if contains_env var_env v
+     then
+       let
+         val rhs' = uniqify_simpl_expa var_env rhs
+         val v' = gensym()
+         val var_env' = insert_env var_env v v'
+         val bod' = uniqify_expa_par var_env' bod
+       in LetA (v', rhs', bod')
+       end
+     else
+       let
+         val rhs' = uniqify_simpl_expa var_env rhs
+         val var_env' = insert_env var_env v v
+         val bod' = uniqify_expa_par var_env' bod
+       in LetA (v, rhs', bod')
+       end
+  | LetA2 (v, rhs, bod) =>
+     if contains_env var_env v
+     then
+       let
+         val rhs' = uniqify_simpl_expa var_env rhs
+         val v' = gensym()
+         val var_env' = insert_env var_env v v'
+         val bod' = uniqify_expa var_env' bod
+       in LetA2 (v', rhs', bod')
+       end
+     else
+       let
+         val rhs' = uniqify_simpl_expa var_env rhs
+         val var_env' = insert_env var_env v v
+         val bod' = uniqify_expa var_env' bod
+       in LetA2 (v, rhs', bod')
+       end
+  | IfA (a,b,c) =>
+    let
+      val d = uniqify_simpl_expa var_env a
+      val (e,f) = ForkJoin.par (fn _ => uniqify_expa_par var_env b,
+                                fn _ => uniqify_expa_par var_env c)
+    in IfA (d,e,f)
+    end
+
 
 fun uniqify prg =
   case prg of
     ProgramA (ty, exp) => ProgramA (ty, uniqify_expa empty_env exp)
+  | ErrorA (err) => ErrorA (err)
+
+fun uniqify_par prg =
+  case prg of
+    ProgramA (ty, exp) => ProgramA (ty, uniqify_expa_par empty_env exp)
   | ErrorA (err) => ErrorA (err)
 
 (* -------------------------------------------------------------------------------- *)
@@ -523,11 +585,52 @@ fun typecheck_expa ty_env exp =
        else errorTy
      end
 
+fun typecheck_expa_par ty_env exp =
+  case exp of
+    SimplA (simpl) => typecheck_simpl_expa ty_env simpl
+  | LetA (v, rhs, bod) =>
+     let
+       val ty = typecheck_simpl_expa ty_env rhs
+       val ty_env' = insert_env ty_env v ty
+     in typecheck_expa_par ty_env' bod
+     end
+  | LetA2 (v, rhs, bod) =>
+    let
+      val ty = typecheck_simpl_expa ty_env rhs
+      val ty_env' = insert_env ty_env v ty
+    in typecheck_expa ty_env' bod
+    end
+  | IfA (a, b, c) =>
+     let
+       val t1 = typecheck_simpl_expa ty_env a
+       val (t2, t3) = ForkJoin.par (fn _ => typecheck_expa_par ty_env b,
+                                    fn _ => typecheck_expa_par ty_env c)
+     in
+       if t1 = boolTy
+       then if t2 = t3
+            then t2
+            else errorTy
+       else errorTy
+     end
+
+
 fun typecheck prg =
   case prg of
     ProgramA (expected, exp) =>
     let
       val actual = typecheck_expa empty_env exp
+    in
+      if expected = actual
+      then ProgramA (expected, exp)
+      else ErrorA errorTy
+    end
+  | ErrorA (err) => ErrorA (err)
+
+fun typecheck_par prg =
+  case prg of
+    ProgramA (expected, exp) =>
+    let
+      val actual = typecheck_expa_par empty_env exp
     in
       if expected = actual
       then ProgramA (expected, exp)
@@ -601,6 +704,50 @@ fun explicate_tail exp =
       (locals3, tb)
     end
 
+
+fun explicate_tail_par exp =
+  case exp of
+    SimplA (simpl) =>
+    let
+      val tb = MkTailAndBlk (RetC (to_expc simpl), BlockNil)
+    in
+      ([], tb)
+    end
+  | LetA2 (v, rhs, bod) =>
+     let
+       val (locals, tail) = explicate_tail2 exp
+       val tb = MkTailAndBlk (tail, BlockNil)
+     in (locals, tb)
+     end
+  | LetA (v, rhs, bod) =>
+    let
+      val rhs' = to_expc rhs
+      val (locals, (MkTailAndBlk (tl, blk))) = explicate_tail_par bod
+      val stm = AssignC (v, rhs')
+      val tail = SeqC (stm, tl)
+      val locals' = v :: locals
+    in (locals', MkTailAndBlk (tail, blk))
+    end
+  | IfA (a,b,c) =>
+    let
+      val a' = to_expc a
+      val (t1, t2) = ForkJoin.par (fn _ => explicate_tail_par b,
+                                   fn _ => explicate_tail_par c)
+      val (locals1, MkTailAndBlk(thn_tail, thn_blocks)) = t1
+      val (locals2, MkTailAndBlk(els_tail, els_blocks)) = t2
+      val locals3 = L.revAppend (locals1, locals2)
+      val thn_label = gensym()
+      val els_label = gensym()
+      val tail' = IfC (thn_label, els_label, a')
+      val blks0 = BlockCons (thn_label, thn_tail, thn_blocks)
+      val blks1 = BlockCons (els_label, els_tail, els_blocks)
+      val blks2 = BlockAppend (blks0, blks1)
+      val tb = MkTailAndBlk (tail', blks2)
+    in
+      (locals3, tb)
+    end
+
+
 fun explicate_control prg =
   case prg of
     ProgramA (ty, exp) =>
@@ -611,6 +758,18 @@ fun explicate_control prg =
       in ProgramC (ty, locals, blk2)
       end
   | ErrorA (err) => ErrorC (err)
+
+fun explicate_control_par prg =
+  case prg of
+    ProgramA (ty, exp) =>
+      let
+        val (locals, (MkTailAndBlk (tail, blk0))) = explicate_tail_par exp
+        val start = gensym()
+        val blk2 = BlockCons (start, tail, blk0)
+      in ProgramC (ty, locals, blk2)
+      end
+  | ErrorA (err) => ErrorC (err)
+
 
 (* -------------------------------------------------------------------------------- *)
 (*  * -- Select instructions *)
@@ -707,9 +866,33 @@ fun select_instrs_blk blk =
     in InstrAppend (instrs1, instrs2)
     end
 
+fun select_instrs_blk_par blk =
+  case blk of
+    BlockNil => InstrNil
+  | BlockCons (lbl, tail, rst) =>
+     let
+       (* val (instrs1, instrs2) = ForkJoin.par (fn _ => select_instrs_tail tail, *)
+       (*                                        fn _ => select_instrs_blk rst) *)
+       val (instrs1, instrs2) = (select_instrs_tail tail,
+                                 select_instrs_blk rst)
+     in InstrAppend (instrs1, instrs2)
+     end
+  | BlockAppend (blk1, blk2) =>
+    let
+      val (instrs1, instrs2) = ForkJoin.par (fn _ => select_instrs_blk_par blk1,
+                                             fn _ => select_instrs_blk_par blk2)
+    in InstrAppend (instrs1, instrs2)
+    end
+
+
 fun select_instrs prg =
   case prg of
     ProgramC (ty, locals, blk) => ProgramX86 (ty, locals, select_instrs_blk blk)
+  | ErrorC (err) => ErrorX86 (err)
+
+fun select_instrs_par prg =
+  case prg of
+    ProgramC (ty, locals, blk) => ProgramX86 (ty, locals, select_instrs_blk_par blk)
   | ErrorC (err) => ErrorX86 (err)
 
 (* -------------------------------------------------------------------------------- *)
@@ -769,6 +952,23 @@ fun assign_homes_instrs homes instrs =
     in InstrAppend (instrs1', instrs2')
     end
 
+fun assign_homes_instrs_par homes instrs =
+  case instrs of
+    InstrCons (instr, rst) =>
+      let
+        val instr' = assign_homes_instr homes instr
+        val rst' = assign_homes_instrs homes rst
+      in InstrCons (instr', rst')
+      end
+  | InstrNil => InstrNil
+  | InstrAppend (instrs1, instrs2) =>
+    let
+      val (instrs1', instrs2') = ForkJoin.par (fn _ => assign_homes_instrs_par homes instrs1,
+                                               fn _ => assign_homes_instrs_par homes instrs2)
+    in InstrAppend (instrs1', instrs2')
+    end
+
+
 fun assign_homes prg =
   case prg of
     ProgramX86 (ty, locals, instrs) =>
@@ -777,6 +977,17 @@ fun assign_homes prg =
       (* val homes = empty_env *)
     in
       ProgramX86 (ty, [], assign_homes_instrs homes instrs)
+    end
+  | ErrorX86 err => ErrorX86 err
+
+fun assign_homes_par prg =
+  case prg of
+    ProgramX86 (ty, locals, instrs) =>
+    let
+      val homes = make_homes locals
+      (* val homes = empty_env *)
+    in
+      ProgramX86 (ty, [], assign_homes_instrs_par homes instrs)
     end
   | ErrorX86 err => ErrorX86 err
 
@@ -790,8 +1001,20 @@ fun compile p0 =
       val p3 = explicate_control p2
       val p4 = select_instrs p3
       val p5 = assign_homes p4
-    in p5
+    in p1
     end
+
+fun compile_par p0 =
+    let
+      val p1 = typecheck_par p0
+      val p2 = uniqify_par p1
+      (* val _ = print_program_a p2 *)
+      val p3 = explicate_control_par p2
+      val p4 = select_instrs_par p3
+      val p5 = assign_homes_par p4
+    in p1
+    end
+
 
 fun make_big_ex2 n =
   if n <= 0
@@ -805,7 +1028,7 @@ fun make_big_ex2 n =
     end
 
 fun make_big_ex n d =
-  if d > 2
+  if d > 10
   then make_big_ex2 n
   else
     let
