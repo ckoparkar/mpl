@@ -1001,7 +1001,7 @@ fun compile p0 =
       val p3 = explicate_control p2
       val p4 = select_instrs p3
       val p5 = assign_homes p4
-    in p1
+    in p5
     end
 
 fun compile_par p0 =
@@ -1012,7 +1012,7 @@ fun compile_par p0 =
       val p3 = explicate_control_par p2
       val p4 = select_instrs_par p3
       val p5 = assign_homes_par p4
-    in p1
+    in p5
     end
 
 

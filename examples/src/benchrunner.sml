@@ -354,7 +354,14 @@ fun run prog size iters arr_input =
       val prg = ProgramA (intTy, ex)
       val compiled = Bench.print_bench prog iters (fn _ => compile prg) size
       val _ = print ("\n")
-      val compiled2 = Bench.print_bench prog iters (fn _ => compile_par prg) size
+    in ()
+    end
+
+  | "parcompiler" =>
+    let
+      val ex = make_big_ex size 0
+      val prg = ProgramA (intTy, ex)
+      val compiled = Bench.print_bench prog iters (fn _ => compile_par prg) size
     in ()
     end
 
