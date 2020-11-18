@@ -874,7 +874,7 @@ fun select_instrs_blk_par blk =
        (* val (instrs1, instrs2) = ForkJoin.par (fn _ => select_instrs_tail tail, *)
        (*                                        fn _ => select_instrs_blk rst) *)
        val (instrs1, instrs2) = (select_instrs_tail tail,
-                                 select_instrs_blk rst)
+                                 select_instrs_blk_par rst)
      in InstrAppend (instrs1, instrs2)
      end
   | BlockAppend (blk1, blk2) =>
