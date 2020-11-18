@@ -1028,7 +1028,10 @@ fun make_big_ex2 n =
     end
 
 fun make_big_ex n d =
-  if d > 10
+  (* SMALL *)
+  if d > 6
+  (* (* OTHERWISE *) *)
+  (* if d > 10 *)
   then make_big_ex2 n
   else
     let
