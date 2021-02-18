@@ -14,6 +14,24 @@ fun str_eq s1 s2  =
     EQUAL => true
     | _     => false
 
+fun bench_fn_seq i arr =
+  if ieq i 0
+  then ()
+  else
+    let
+      val arr2 = SQuicksort.sort (fn (p1, p2) => compare_point3d 0 p1 p2) arr
+    in bench_fn_seq (i-1) arr
+    end
+
+fun bench_fn_par i arr =
+  if ieq i 0
+  then ()
+  else
+    let
+      val arr2 = Mergesort.sort (fn (p1, p2) => compare_point3d 0 p1 p2) arr
+    in bench_fn_par (i-1) arr
+    end
+
 fun run prog size iters arr_input =
   case prog of
     "seqfib" =>
@@ -315,6 +333,7 @@ fun run prog size iters arr_input =
     end
 
   | "seqmergesort" =>
+
     let
       val seed = Random.rand (0, 100)
       val arr = AS.full (A.tabulate (size, (fn i => Random.randReal seed)))
@@ -322,6 +341,17 @@ fun run prog size iters arr_input =
     in
       check_sorted Real.compare sorted
     end
+(*
+    let
+      val seed = Random.rand (0, 100)
+      val arr = AS.full (A.tabulate (size, (fn i => let val x = Random.randReal seed
+                                                    in (x,x,x)
+                                                    end)))
+      val sorted = Bench.print_bench prog iters (fn _ => bench_fn_seq 9 arr) size
+    in
+      ()
+    end
+*)
 
   | "parmergesort" =>
     let
@@ -331,6 +361,17 @@ fun run prog size iters arr_input =
     in
       check_sorted Real.compare sorted
     end
+(*
+   let
+      val seed = Random.rand (0, 100)
+      val arr = AS.full (A.tabulate (size, (fn i => let val x = Random.randReal seed
+                                                    in (x,x,x)
+                                                    end)))
+      val sorted = Bench.print_bench prog iters (fn _ => bench_fn_par 9 arr) size
+    in
+      ()
+    end
+*)
 
   | "seqfoldconstants" =>
     let
