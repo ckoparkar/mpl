@@ -43,7 +43,7 @@ fun run prog size iters arr_input =
 
   | "parfib" =>
     let
-      val cutoff = 19
+      val cutoff = 30
       val n = Bench.print_bench prog iters (fn i => fib cutoff i) size
       val _ = print (Int.toString n ^ "\n")
     in ()
@@ -174,8 +174,7 @@ fun run prog size iters arr_input =
       val arr = read3DArrayFile arr_input
       val tr = sfromList arr
       val _ = print ("built tree\n")
-      val cutoff = 1024
-      val res = Bench.print_bench prog iters (fn _ => allNearestNeighbors_par cutoff tr arr) size
+      val res = Bench.print_bench prog iters (fn _ => allNearestNeighbors_par tr arr) size
     in
      check_nearest arr res
     end

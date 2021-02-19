@@ -11,6 +11,8 @@ struct
   structure AS = ArraySlice
   structure A = Array
 
+  val gotoQuickSort = 4096
+
   fun take s n = AS.subslice (s, 0, SOME n)
   fun drop s n = AS.subslice (s, n, NONE)
 
@@ -18,7 +20,7 @@ struct
 
   (* in-place sort s, using t as a temporary array if needed *)
   fun sortInPlace' cmp s t =
-    if AS.length s <= 1024 then
+    if AS.length s <= gotoQuickSort then
       Quicksort.sortInPlace cmp s
     else let
       val half = AS.length s div 2
@@ -34,7 +36,7 @@ struct
 
   (* destructively sort s, writing the result in t *)
   and writeSort cmp s t =
-    if AS.length s <= 1024 then
+    if AS.length s <= gotoQuickSort then
       ( Util.for (0, AS.length s) (fn i => AS.update (t, i, (AS.sub(s, i))))
       ; SQuicksort.sortInPlace cmp t
       )

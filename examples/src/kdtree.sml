@@ -256,12 +256,12 @@ fun allNearestNeighbors_seq (tr : kdtree) (pts : point3d AS.slice) : point3d AS.
     AS.full result
   end
 
-fun allNearestNeighbors_par (grain : int) (tr : kdtree) (pts : point3d AS.slice) : point3d AS.slice =
+fun allNearestNeighbors_par (tr : kdtree) (pts : point3d AS.slice) : point3d AS.slice =
   let
     val n = AS.length pts
     val result = ForkJoin.alloc n
   in
-    ForkJoin.parfor grain (0, n)
+    ForkJoin.parfor 4096 (0, n)
                     (fn i =>
                         let
                           val j = AS.sub (pts, i)

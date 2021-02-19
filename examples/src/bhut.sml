@@ -268,7 +268,7 @@ fun soneStep (bht : bh_tree) (mpts : mass_point AS.slice) (ps : particle AS.slic
 fun poneStep (cutoff : int) (bht : bh_tree) (mpts : mass_point AS.slice) (ps : particle AS.slice) : particle AS.slice =
   let
     val ps2 = AS.full (ForkJoin.alloc (AS.length ps))
-    val _ = Util.foreach ps (fn (i,p) =>
+    val f = (fn (i,p) =>
                                 let
                                   val mpt = AS.sub(mpts, i)
                                   val accel = calcAccel mpt bht
@@ -276,6 +276,10 @@ fun poneStep (cutoff : int) (bht : bh_tree) (mpts : mass_point AS.slice) (ps : p
                                 in
                                   AS.update (ps2, i, p2)
                                 end)
+    val _ = ForkJoin.parfor 4096
+                            (0, AS.length ps)
+                            (fn i => f (i, AS.sub (ps, i)))
+    (* val _ = Util.foreach ps fn *)
   in
     ps2
   end

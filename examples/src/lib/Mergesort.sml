@@ -16,9 +16,11 @@ struct
   val par = ForkJoin.par
   val allocate = ForkJoin.alloc
 
+  val gotoQuickSort = 4096
+
   (* in-place sort s, using t as a temporary array if needed *)
   fun sortInPlace' cmp s t =
-    if AS.length s <= 1024 then
+    if AS.length s <= gotoQuickSort then
       Quicksort.sortInPlace cmp s
     else let
       val half = AS.length s div 2
@@ -34,7 +36,7 @@ struct
 
   (* destructively sort s, writing the result in t *)
   and writeSort cmp s t =
-    if AS.length s <= 1024 then
+    if AS.length s <= gotoQuickSort then
       ( Util.foreach s (fn (i, x) => AS.update (t, i, x))
       ; Quicksort.sortInPlace cmp t
       )

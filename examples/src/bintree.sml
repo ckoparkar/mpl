@@ -77,7 +77,7 @@ fun buildfib cutoff n =
   if n <= 0
   then Leaf (sfib 20)
   else
-  if n < cutoff
+  if n <= cutoff
   then sbuildfib n
   else
     let val (x, y) = ForkJoin.par(fn _ => buildfib cutoff (n-1),

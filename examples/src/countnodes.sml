@@ -104,7 +104,7 @@ and c_toplvl_par (height : int) (tl : toplvl) : int =
     tag_cost + c_expr e
 
 and c_list_toplvl_par (height : int) (ls : list_toplvl) =
-  if height > 16 then c_list_toplvl ls else
+  if height >= 9 then c_list_toplvl ls else
   case ls of
     CONSTOPLVL (t, ts) =>
     let

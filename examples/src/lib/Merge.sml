@@ -65,8 +65,10 @@ struct
       out
     end
 
+  val goto_seqmerge = 4096
+
   fun writeMerge cmp (s1, s2) t =
-    if AS.length t <= 4096 then
+    if AS.length t <= goto_seqmerge then
       writeMergeSerial cmp (s1, s2) t
     else if AS.length s1 = 0 then
       Util.foreach s2 (fn (i, x) => AS.update (t, i, x))

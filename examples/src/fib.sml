@@ -4,7 +4,9 @@ fun sfib n =
     else (sfib (n-1)) + (sfib (n-2))
 
 fun fib cutoff n =
-    if n <= cutoff
+    if n <= 1
+    then n
+    else if n <= cutoff
     then sfib n
     else
       let
