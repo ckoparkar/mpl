@@ -261,7 +261,7 @@ fun allNearestNeighbors_par (tr : kdtree) (pts : point3d AS.slice) : point3d AS.
     val n = AS.length pts
     val result = ForkJoin.alloc n
   in
-    ForkJoin.parfor 4096 (0, n)
+    ForkJoin.parfor 1024 (0, n)
                     (fn i =>
                         let
                           val j = AS.sub (pts, i)
