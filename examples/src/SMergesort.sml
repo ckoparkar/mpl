@@ -11,7 +11,7 @@ struct
   structure AS = ArraySlice
   structure A = Array
 
-  val gotoQuickSort = 4096
+  val gotoQuickSort = 8192
 
   fun take s n = AS.subslice (s, 0, SOME n)
   fun drop s n = AS.subslice (s, n, NONE)

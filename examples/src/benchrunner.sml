@@ -116,7 +116,7 @@ fun run prog size iters arr_input =
     let
       val arr = read3DArrayFile arr_input
       (* val _ = print_arr_point3d arr *)
-      val cutoff = 5000
+      val cutoff = 32000
       val tr = Bench.print_bench prog iters (fn _ => pfromList cutoff arr) size
     in check_buildkdtree arr tr
     end

@@ -16,7 +16,7 @@ struct
   val par = ForkJoin.par
   val allocate = ForkJoin.alloc
 
-  val gotoQuickSort = 4096
+  val gotoQuickSort = 8192
 
   (* in-place sort s, using t as a temporary array if needed *)
   fun sortInPlace' cmp s t =
