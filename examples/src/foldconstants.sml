@@ -16,7 +16,7 @@ fun fold_constants exp =
         Plus (fold_constants a, fold_constants b)
 
 fun fold_constants_par depth exp =
-    if depth > 6 then fold_constants exp else
+    if depth >= 8 then fold_constants exp else
     case exp of
         Lit i => Lit i
       | MkTrue => MkTrue

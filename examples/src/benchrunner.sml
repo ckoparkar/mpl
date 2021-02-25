@@ -150,7 +150,7 @@ fun run prog size iters arr_input =
       val idx = 0
       val probe = AS.sub (arr, idx)
       (* 2 ^ 19 = 524288 *)
-      val cutoff = 50000
+      val cutoff = 8000
       (* val (query, actual) = Bench.print_bench prog iters (fn radius =>
                                                let
                                                  val rand = get_rand(AS.length arr)
