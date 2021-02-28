@@ -21,34 +21,40 @@ fun append (ls1 : AList) (ls2 : AList) : AList =
 
 type coin = int * int
 
-fun payA_seq (amt : int) (coins : coin L.list) : AList =
+fun payA_seq' (amt : int) (coins : coin L.list) : AList =
   if amt = 0
   then ASing 1
   else
     case coins of
       ((c,q) :: coins_rst) =>
       if c > amt
-      then payA_seq amt coins_rst
+      then payA_seq' amt coins_rst
       else
         let
           val coins1 = if q = 1 then coins_rst else (c,q-1) :: coins_rst
-          val left = payA_seq (amt - c) coins1
-          val right = payA_seq amt coins_rst
+          val left = payA_seq' (amt - c) coins1
+          val right = payA_seq' amt coins_rst
         in
           append left right
         end
     | [] => ANil
 
+(* See https://github.com/MPLLang/mpl/pull/132#issuecomment-786001995 *)
+fun payA_seq (amt : int) (coins : coin L.list) : AList =
+    #1 (ForkJoin.par (fn _ => payA_seq' amt coins,
+                      fn _ => "workaround"))
+
+
 fun payA_par (depth : int) (amt : int) (coins : coin L.list) : AList =
   if depth = 0
-  then payA_seq amt coins
+  then payA_seq' amt coins
   else if amt = 0
   then ASing 1
   else
     case coins of
       ((c,q) :: coins_rst) =>
       if c > amt
-      then payA_seq amt coins_rst
+      then payA_par depth amt coins_rst
       else
         let
           val (coins1,depth1) = if q = 1
