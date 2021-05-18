@@ -7,10 +7,12 @@ structure P = MLton.Parallel
 (* --------------------------------------------------------------------------------
  * -- Data types common to all languages *)
 
-type sym = string
+type sym = int
 type ty = sym
 type label = sym
 type var = sym
+
+fun symToString s = Int.toString s
 
 datatype arg = IntArg of int | TrueArg | FalseArg | VarArg of var
 
@@ -19,7 +21,7 @@ fun print_arg arg =
     IntArg (i) => print ("(IntArg " ^ Int.toString i ^ ")")
   | TrueArg => print "(TrueArg)"
   | FalseArg => print "(FalseArg)"
-  | VarArg (v) => print ("(VarArg " ^ v ^ ")")
+  | VarArg (v) => print ("(VarArg " ^ symToString v ^ ")")
 
 datatype prim = AddP | SubP | AndP | OrP
 
@@ -45,7 +47,7 @@ type varEnv = (sym * sym) list
 type aliasEnv = (sym * sym) list
 
 val default_int = 0
-val default_sym = "notfound"
+val default_sym = 0
 
 fun lookup_with_default (def : 'a) (k : var) (env : (sym * 'a) list) =
   case (L.find (fn (k1,v) => k = k1) env) of
@@ -87,9 +89,9 @@ fun contains_int_env env k =
 (* -------------------------------------------------------------------------------- *)
 
 
-val intTy = "Int"
-val boolTy = "Bool"
-val errorTy = "Bool"
+val intTy = 0
+val boolTy = 1
+val errorTy = 1
 
 (* -------------------------------------------------------------------------------- *)
 (*  * -- ANF'd Source *)
@@ -133,11 +135,11 @@ fun print_simpl_expa exp =
 fun print_expa exp =
   case exp of
     SimplA (simpl) => (print ("(SimplA ") ; print_simpl_expa simpl ; print (")"))
-  | LetA (v, rhs, bod) => (print ("(LetA " ^ v ^ " ") ;
+  | LetA (v, rhs, bod) => (print ("(LetA " ^ symToString v ^ " ") ;
                           print_simpl_expa rhs ;
                           print_expa bod ;
                           print (")"))
-  | LetA2 (v, rhs, bod) => (print ("(LetA2 " ^ v ^ " ") ;
+  | LetA2 (v, rhs, bod) => (print ("(LetA2 " ^ symToString v ^ " ") ;
                            print_simpl_expa rhs ;
                            print_expa bod ;
                            print (")"))
@@ -151,11 +153,11 @@ fun print_expa exp =
 
 fun print_program_a p =
   case p of
-    ProgramA (ty, exp) => (print ("(ProgramA " ^ ty ^ " ") ;
+    ProgramA (ty, exp) => (print ("(ProgramA " ^ symToString ty ^ " ") ;
                           print_expa exp ;
                           print (")"))
 
-  | ErrorA (err) => print ("(ErrorA " ^ err ^ ")")
+  | ErrorA (err) => print ("(ErrorA " ^ symToString err ^ ")")
 
 
 (* -------------------------------------------------------------------------------- *)
@@ -206,7 +208,7 @@ fun print_expc exp =
                       print (")"))
 
 
-fun print_stm (AssignC (v, exp)) = (print ("(AssignC " ^ v ^ " ") ;
+fun print_stm (AssignC (v, exp)) = (print ("(AssignC " ^ symToString v ^ " ") ;
                                    print_expc exp ;
                                    print (")"))
 
@@ -219,15 +221,15 @@ fun print_tail tail =
                         print_tail tail ;
                         print (")"))
 
-  | IfC (thn, els, cmp)  => (print ("(IfC " ^ thn ^ " " ^ els) ;
+  | IfC (thn, els, cmp)  => (print ("(IfC " ^ symToString thn ^ " " ^ symToString els) ;
                             print_expc cmp ;
                             print (")"))
 
-  | GotoC lbl => print ("(GotoC " ^ lbl ^ ")")
+  | GotoC lbl => print ("(GotoC " ^ symToString lbl ^ ")")
 
 fun print_blk blk =
   case blk of
-    BlockCons (lbl, tail, rst) => (print ("(BlockCons " ^ lbl ^ " ") ;
+    BlockCons (lbl, tail, rst) => (print ("(BlockCons " ^ symToString lbl ^ " ") ;
                                   print_tail tail ;
                                   print (" ") ;
                                   print_blk rst ;
@@ -242,22 +244,24 @@ fun print_blk blk =
 fun print_locals ls =
   case ls of
     [] => ()
-  | (x :: xs) => (print (x ^ " ") ;
-                 print_locals xs)
+  | (x :: xs) => (print (symToString x ^ " ") ;
+                  print_locals xs)
 
 fun print_program_c p =
   case p of
-    ProgramC (ty, locals, blk) => (print ("(ProgramC " ^ ty ^ " (") ;
+    ProgramC (ty, locals, blk) => (print ("(ProgramC " ^ symToString ty ^ " (") ;
                                   print_locals locals ;
                                   print (")") ;
                                   print_blk blk ;
                                   print (")"))
-  | ErrorC (err) => print ("(ErrorC " ^ err ^ ")")
+  | ErrorC (err) => print ("(ErrorC " ^ symToString err ^ ")")
 
 (* -------------------------------------------------------------------------------- *)
 (*  * -- X86 with variables *)
 
-type reg = sym
+type reg = string
+
+fun regToString r = r
 
 datatype argX86 = IntX86 of int
                 | VarX86 of var
@@ -286,12 +290,12 @@ and instr = AddQ of (argX86 * argX86)
 datatype pseudoX86 = ProgramX86 of (ty * (sym list) * instrs)
                    | ErrorX86 of ty
 
-fun print_reg r = print ("% " ^ r)
+fun print_reg r = print ("% " ^ regToString r)
 
 fun print_argx86 a =
   case a of
     IntX86 (i) => print (Int.toString i)
-  | VarX86 (v) => print v
+  | VarX86 (v) => print (symToString v)
   | RegX86 (r) => print_reg r
   | DerefX86 (r, off) => (print (Int.toString off) ;
                           print ("(") ;
@@ -336,8 +340,8 @@ and print_instr instr =
                        print_argx86 a1 ;
                        print ", " ;
                        print_argx86 a2)
-  | JumpQ (lbl) => print ("jmp " ^ lbl)
-  | JumpEQ (lbl) => print ("je " ^ lbl)
+  | JumpQ (lbl) => print ("jmp " ^ symToString lbl)
+  | JumpEQ (lbl) => print ("je " ^ symToString lbl)
   | PushQ (a1) => (print ("pushq ") ; print_argx86 a1)
   | PopQ (a1) => (print ("popq ") ; print_argx86 a1)
   | RetQ => print "retq"
@@ -350,7 +354,7 @@ fun print_pseudox86 p =
                                        print (")\n") ;
                                        print_instrs instrs)
 
-  | ErrorX86 (err) => print ("(ErrorX86 " ^ err ^ ")")
+  | ErrorX86 (err) => print ("(ErrorX86 " ^ symToString err ^ ")")
 
 
 (* -------------------------------------------------------------------------------- *)
@@ -361,7 +365,8 @@ val global_gensym_counter = ref 0
 fun gensym () =
     let
       val next = P.fetchAndAdd global_gensym_counter 1
-    in "gensym_" ^ Int.toString next
+    (* in "gensym_" ^ Int.toString next *)
+    in next
     end
 
 (* -------------------------------------------------------------------------------- *)
@@ -385,8 +390,10 @@ fun uniqify_expa var_env exp =
   case exp of
     SimplA (simpl) => SimplA (uniqify_simpl_expa var_env simpl)
   | LetA (v, rhs, bod) =>
+    (*
      if contains_env var_env v
      then
+     *)
        let
          val rhs' = uniqify_simpl_expa var_env rhs
          val v' = gensym()
@@ -394,6 +401,7 @@ fun uniqify_expa var_env exp =
          val bod' = uniqify_expa var_env' bod
        in LetA (v', rhs', bod')
        end
+    (*
      else
        let
          val rhs' = uniqify_simpl_expa var_env rhs
@@ -401,9 +409,12 @@ fun uniqify_expa var_env exp =
          val bod' = uniqify_expa var_env' bod
        in LetA (v, rhs', bod')
        end
+     *)
   | LetA2 (v, rhs, bod) =>
+    (*
      if contains_env var_env v
      then
+     *)
        let
          val rhs' = uniqify_simpl_expa var_env rhs
          val v' = gensym()
@@ -411,6 +422,7 @@ fun uniqify_expa var_env exp =
          val bod' = uniqify_expa var_env' bod
        in LetA2 (v', rhs', bod')
        end
+     (*
      else
        let
          val rhs' = uniqify_simpl_expa var_env rhs
@@ -418,6 +430,7 @@ fun uniqify_expa var_env exp =
          val bod' = uniqify_expa var_env' bod
        in LetA2 (v, rhs', bod')
        end
+       *)
   | IfA (a,b,c) => IfA (uniqify_simpl_expa var_env a, uniqify_expa var_env b, uniqify_expa var_env c)
 
 fun par3 (a, b, c, d) =
@@ -433,8 +446,10 @@ fun uniqify_expa_par var_env exp =
   case exp of
     SimplA (simpl) => SimplA (uniqify_simpl_expa var_env simpl)
   | LetA (v, rhs, bod) =>
+    (*
      if contains_env var_env v
      then
+     *)
        let
          val rhs' = uniqify_simpl_expa var_env rhs
          val v' = gensym()
@@ -442,6 +457,7 @@ fun uniqify_expa_par var_env exp =
          val bod' = uniqify_expa_par var_env' bod
        in LetA (v', rhs', bod')
        end
+    (*
      else
        let
          val rhs' = uniqify_simpl_expa var_env rhs
@@ -449,9 +465,12 @@ fun uniqify_expa_par var_env exp =
          val bod' = uniqify_expa_par var_env' bod
        in LetA (v, rhs', bod')
        end
+      *)
   | LetA2 (v, rhs, bod) =>
+    (*
      if contains_env var_env v
      then
+    *)
        let
          val rhs' = uniqify_simpl_expa var_env rhs
          val v' = gensym()
@@ -459,6 +478,7 @@ fun uniqify_expa_par var_env exp =
          val bod' = uniqify_expa var_env' bod
        in LetA2 (v', rhs', bod')
        end
+    (*
      else
        let
          val rhs' = uniqify_simpl_expa var_env rhs
@@ -466,6 +486,7 @@ fun uniqify_expa_par var_env exp =
          val bod' = uniqify_expa var_env' bod
        in LetA2 (v, rhs', bod')
        end
+     *)
   | IfA (a,b,c) =>
     let
       val d = uniqify_simpl_expa var_env a
@@ -914,7 +935,8 @@ fun assign_homes_arg homes arg =
     VarX86 v =>
      (* let o = lookup_int_env homes v in *)
     let
-      val off = 1
+      val off = lookup_int_env homes v
+      (* val off = 1 *)
     in
       DerefX86 ("rbp", off)
     end
@@ -995,7 +1017,9 @@ fun assign_homes_par prg =
 
 fun compile p0 =
     let
+      (* val _ = print_program_a p0 *)
       val p1 = typecheck p0
+      (* val _ = print_program_a p1 *)
       val p2 = uniqify p1
       (* val _ = print_program_a p2 *)
       val p3 = explicate_control p2
@@ -1022,20 +1046,20 @@ fun make_big_ex2 n =
   else
     (* let v2 = gensym *)
     let
-      val v2 = "v2"
+      val v2 = 1
     in
       LetA2 (v2, (ArgA (IntArg (n-1))), make_big_ex2 (n-1))
     end
 
 fun make_big_ex n d =
-  (* SMALL *)
-  if d > 6
-  (* (* OTHERWISE *) *)
-  (* if d > 10 *)
+  (* (* SMALL *) *)
+  (* if d > 6 *)
+  (* OTHERWISE *)
+  if d > 10
   then make_big_ex2 n
   else
     let
-      val v1 = "v1"
+      val v1 = 0
       val branch = make_big_ex n (d+1)
     in
       LetA (v1, ArgA (IntArg n), IfA (CmpA (EqP, (VarArg v1), (IntArg 0)), branch, branch))

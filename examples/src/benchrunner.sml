@@ -393,6 +393,7 @@ fun run prog size iters arr_input =
       val ex = make_big_ex size 0
       val prg = ProgramA (intTy, ex)
       val compiled = Bench.print_bench prog iters (fn _ => compile prg) size
+      (* val _ = print_pseudox86 compiled *)
       val _ = print ("\n")
     in ()
     end
@@ -402,6 +403,7 @@ fun run prog size iters arr_input =
       val ex = make_big_ex size 0
       val prg = ProgramA (intTy, ex)
       val compiled = Bench.print_bench prog iters (fn _ => compile_par prg) size
+      (* val _ = print_pseudox86 compiled *)
     in ()
     end
 
