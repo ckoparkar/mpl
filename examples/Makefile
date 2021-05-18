@@ -1,5 +1,5 @@
 MPL=../build/bin/mpl
-FLAGS=-default-type int64
+FLAGS=-default-type int64 -cc-opt -DINT_NO_CHECK
 
 PROGRAMS = \
 	benchrunner
