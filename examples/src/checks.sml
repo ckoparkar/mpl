@@ -91,39 +91,6 @@ fun check_buildquadtree (mpts : mass_point AS.slice) (bht : bh_tree) =
     print_check (Real.abs (expected - actual) < epsilon)
   end
 
-fun check_bhut (input : particle AS.slice) (ps : particle AS.slice) =
-  let
-    fun accel_for query = AS.foldr (fn (PARTICLE (mp, _, _), (aax,aay)) =>
-                                       let
-                                         val (PARTICLE (query_mp, _, _)) = query
-                                         val (ax,ay) = accel query_mp mp
-                                       in
-                                         (aax + ax, aay + ay)
-                                       end)
-                          (0.0, 0.0) input
-    val n = AS.length input
-    val checkpoints = [0 , n div 4 , n div 2 , n-1]
-    val deltas = L.map (fn idx =>
-                           let
-                             val query = AS.sub (input, idx)
-                             val (ax, ay) = accel_for query
-                             val PARTICLE (_, expected_ax, expected_ay) = applyAccel query (ax,ay)
-                             val PARTICLE (_, actual_ax, actual_ay) = AS.sub (ps, idx)
-                           in
-                             (Real.abs (expected_ax - actual_ax), Real.abs (expected_ay - actual_ay))
-                           end)
-                       checkpoints
-  val _ = print "\n"
-  val check = L.foldr (fn ((dx, dy), acc) =>
-                          let
-                            val _ = print (Real.toString dx ^ "," ^ Real.toString dy ^ "\n")
-                          in
-                            acc andalso dx < epsilon andalso dy < epsilon
-                          end) true deltas
-  in
-    print_check check
-  end
-
 fun check_coins (amt : int) (ls : AList) =
   let
     val n = lenA ls
