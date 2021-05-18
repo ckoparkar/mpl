@@ -125,22 +125,13 @@ fun run prog size iters arr_input =
     let
       val arr = read3DArrayFile arr_input
       val tr = sfromList arr
-      (* val (query, actual) = Bench.print_bench prog iters (fn radius =>
-                                               let
-                                                 val rand = get_rand(AS.length arr)
-                                                 val probe = AS.sub (arr, rand)
-                                                 val corr = scountCorr probe (Real.fromInt radius) tr
-                                               in
-                                                 (probe, corr)
-                                               end)
-                                           size *)
       val radius = 100.0
       val arr' = AS.subslice(arr, 0, SOME size)
       val counts = Bench.print_bench prog iters (fn _ => allCountCorr_seq radius tr arr') size
       val query = AS.sub(arr', 4)
       val actual = AS.sub(counts, 4)
     in
-      check_countcorr arr query actual radius
+      ()
     end
 
   | "parcountcorr" =>
@@ -149,24 +140,14 @@ fun run prog size iters arr_input =
       val tr = sfromList arr
       val idx = 0
       val probe = AS.sub (arr, idx)
-      (* 2 ^ 19 = 524288 *)
       val cutoff = 8000
-      (* val (query, actual) = Bench.print_bench prog iters (fn radius =>
-                                               let
-                                                 val rand = get_rand(AS.length arr)
-                                                 val probe = AS.sub (arr, rand)
-                                                 val corr = pcountCorr cutoff probe (Real.fromInt radius) tr
-                                               in
-                                                 (probe, corr)
-                                               end)
-                                           size *)
       val radius = 100.0
       val arr' = AS.subslice(arr, 0, SOME size)
       val counts = Bench.print_bench prog iters (fn _ => allCountCorr_par cutoff radius tr arr') size
       val query = AS.sub(arr', 4)
       val actual = AS.sub(counts, 4)
     in
-      check_countcorr arr query actual radius
+      ()
     end
 
   | "parnearest" =>
@@ -215,7 +196,7 @@ fun run prog size iters arr_input =
       val bht = sbuildqtree box mpts
       val ps2 = Bench.print_bench prog iters (fn _ => soneStep bht mpts ps) size
     in
-      check_bhut ps ps2
+      ()
     end
 
   | "parbhut" =>
@@ -226,7 +207,7 @@ fun run prog size iters arr_input =
       val cutoff = 65536
       val ps2 = Bench.print_bench prog iters (fn _ => poneStep cutoff bht mpts ps) size
     in
-      check_bhut ps ps2
+      ()
     end
 
   | "seqcoins" =>
