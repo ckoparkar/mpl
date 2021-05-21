@@ -1,5 +1,5 @@
 MPL=../build/bin/mpl
-FLAGS=-default-type int64
+FLAGS=-default-type int64 -cc-opt -DINT_NO_CHECK -const "MLton.detectOverflow false"
 
 PROGRAMS = \
 	benchrunner
@@ -9,7 +9,7 @@ PROGRAMS = \
 all: $(PROGRAMS)
 
 $(PROGRAMS): %: src/* src/lib/*
-	$(MPL) $(FLAGS) -cc-opt -DINT_NO_CHECK -output src/$*.exe src/$*.mlb
+	$(MPL) $(FLAGS) -output src/$*.exe src/$*.mlb
 	@echo "successfully built $*"
 
 .PHONY: clean
