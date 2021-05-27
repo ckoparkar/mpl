@@ -1040,6 +1040,29 @@ fun compile_par p0 =
     end
 
 
+fun compile2 p0 =
+    let
+      (* val _ = print_program_a p0 *)
+      val p1 = typecheck p0
+      (* val _ = print_program_a p1 *)
+      val p2 = uniqify p1
+      (* val _ = print_program_a p2 *)
+      val p3 = explicate_control p2
+      val p4 = select_instrs p3
+    in p4
+    end
+
+fun compile2_par p0 =
+    let
+      val p1 = typecheck_par p0
+      val p2 = uniqify_par p1
+      (* val _ = print_program_a p2 *)
+      val p3 = explicate_control_par p2
+      val p4 = select_instrs_par p3
+    in p4
+    end
+
+
 fun make_big_ex2 n =
   if n <= 0
   then SimplA (ArgA (IntArg 1))

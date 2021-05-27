@@ -388,6 +388,26 @@ fun run prog size iters arr_input =
     in ()
     end
 
+  | "seqcompiler2" =>
+    let
+      val ex = make_big_ex size 0
+      val prg = ProgramA (intTy, ex)
+      val compiled = Bench.print_bench prog iters (fn _ => compile2 prg) size
+      (* val _ = print_pseudox86 compiled *)
+      val _ = print ("\n")
+    in ()
+    end
+
+  | "parcompiler2" =>
+    let
+      val ex = make_big_ex size 0
+      val prg = ProgramA (intTy, ex)
+      val compiled = Bench.print_bench prog iters (fn _ => compile2_par prg) size
+      (* val _ = print_pseudox86 compiled *)
+    in ()
+    end
+
+
   | _  => raise Fail ("Unknown program: " ^ prog)
 
 
