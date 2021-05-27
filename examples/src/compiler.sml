@@ -892,10 +892,10 @@ fun select_instrs_blk_par blk =
     BlockNil => InstrNil
   | BlockCons (lbl, tail, rst) =>
      let
-       (* val (instrs1, instrs2) = ForkJoin.par (fn _ => select_instrs_tail tail, *)
-       (*                                        fn _ => select_instrs_blk rst) *)
-       val (instrs1, instrs2) = (select_instrs_tail tail,
-                                 select_instrs_blk_par rst)
+       val (instrs1, instrs2) = ForkJoin.par (fn _ => select_instrs_tail tail,
+                                              fn _ => select_instrs_blk rst)
+       (* val (instrs1, instrs2) = (select_instrs_tail tail, *)
+       (*                           select_instrs_blk_par rst) *)
      in InstrAppend (instrs1, instrs2)
      end
   | BlockAppend (blk1, blk2) =>
@@ -1062,5 +1062,6 @@ fun make_big_ex n d =
       val v1 = 0
       val branch = make_big_ex n (d+1)
     in
-      LetA (v1, ArgA (IntArg n), IfA (CmpA (EqP, (VarArg v1), (IntArg 0)), branch, branch))
+      (* LetA (v1, ArgA (IntArg n), ) *)
+      IfA (CmpA (EqP, (IntArg n), (IntArg 0)), branch, branch)
     end
